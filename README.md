@@ -1,2 +1,2 @@
 # cfr
-continuous fraction calculation
+continued fraction calculation
