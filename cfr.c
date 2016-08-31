@@ -26,6 +26,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#define VERSION "1.0"
+
 struct _fraction {
     long long n;
     long long d;
@@ -85,7 +87,8 @@ static void help(char * name)
 
     argv[0] = name;
     fprintf(stderr, "Lists a serial of simple fractions approximate original fraction or real,\n"
-                    "and continued fraction coefficients, errors or gcd.\n\n");
+                    "and continued fraction coefficients, errors or gcd.  "
+                    "Version: %s\n\n", VERSION);
 
     fprintf(stderr, "SYNOPSIS\n");
     fprintf(stderr, "    %s [options] num [den]\n", name);
@@ -93,12 +96,11 @@ static void help(char * name)
     fprintf(stderr, "\nOPTIONS\n"
                     "    num    - is real number , or numerator of a fraction\n\n"
                     "    den    - [optional] is the denominator, integer or another real\n\n"
-                    "    -m maxden\n"
-                    "                     is the maximum denominator allowed\n\n"
-                    "    -w|--welformed\n"
-                    "                     print in welformed style\n\n"
-                    "    -p|--plain\n"
-                    "                     print in plain style\n\n");
+                    "    -m maxden       is the maximum denominator allowed\n\n"
+                    "    -w|--welformed  print in welformed style\n\n"
+                    "    -p|--plain      print in plain style\n\n"
+                    "    -h|--help       show help\n\n"
+                    "    --version       show version\n\n");
 
     fd = dup(1);
     dup2(2, 1); /* redirect stdout to stderr */
@@ -311,6 +313,11 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
     int optind, i;
     // parse named options
     optind = 1;
+    if (argc == 1)
+    {
+        help(argv[0]);
+        exit (0);
+    }
     for (i = argc; i > 1; --i)
     {
         char * optarg;
@@ -320,6 +327,9 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         {
             switch (argv[optind][1])
             {
+            case 'h':
+                help(argv[0]);
+                exit(0);
             case 'm':
                 {
                     long long md = 0;
@@ -331,6 +341,10 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                     {
                         optarg = argv[++optind];
                         --i;
+                    }
+                    else
+                    {
+                        return 1;
                     }
 
                     md = atoll(optarg);
@@ -364,15 +378,22 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                 {
                     switch (argv[optind][2])
                     {
+                    case 'h':
+                        help(argv[0]);
+                        exit(0);
+                    case 'p':
+                        ctx->is_welformed = 0;
+                        ++optind;
+                        parsed = 1;
+                        break;
                     case 'w':
                         ctx->is_welformed = 1;
                         ++optind;
                         parsed = 1;
                         break;
-                    case 'p':
-                        ctx->is_welformed = 0;
-                        ++optind;
-                        parsed = 1;
+                    case 'v':
+                        printf("%s\n", VERSION);
+                        exit (0);
                         break;
                     default:
                         break;
@@ -458,8 +479,6 @@ int main(int argc, char ** argv)
     /* parse options */
     if (parse_options(argc, argv, &ctx) != 0)
     {
-        fprintf(stderr, "\n");
-        help(argv[0]);
         exit(1);
     }
 
