@@ -94,7 +94,7 @@ static void help(char * name)
                     "Version: %s\n\n", VERSION);
 
     fprintf(stderr, "SYNOPSIS\n");
-    fprintf(stderr, "    %s [options] num [den]\n", name);
+    fprintf(stderr, "    %s [options] num [[/] den]\n", name);
 
     fprintf(stderr, "\nOPTIONS\n"
                     "    num    - is real number , or numerator of a fraction\n\n"
@@ -104,6 +104,10 @@ static void help(char * name)
                     "    --maxnum=integer  specify the maximum numerator\n\n"
                     "    -w|--welformed    print in welformed style\n\n"
                     "    -p|--plain        print in plain style\n\n"
+                    "    -v|--verbose      show detailed iteration process (default)\n\n"
+                    "    -c|--cont         show the continued fraction\n\n"
+                    "    -g|--gcd          show the gcd of two integer numbers\n\n"
+                    "    -s|--simple       show the approximation of simple fraction\n\n"
                     "    -h|--help         show help\n\n"
                     "    --version         show version\n\n");
 
@@ -155,10 +159,11 @@ struct context {
     int is_float;
     int is_welformed;
     int index;
+    char show_mod; /* continued, gcd, simple, verbose */
     struct cfstep * steps;
 };
 
-static void print_result(fraction f, long long ai, long long gcd, void * data)
+static void print_verbose(fraction f, long long ai, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     // columns: simp, ai, error or gcd
@@ -258,6 +263,31 @@ static void print_welformed(void * data)
     }
 }
 
+static void print_gcd(fraction f, long long ai, long long gcd, void * data)
+{
+    struct context * ctx = (struct context*) data;
+    if (gcd && !ctx->is_float)
+    {
+        printf("%lld\n", gcd);
+    }
+}
+
+static void print_dumy(fraction f, long long ai, long long gcd, void * data)
+{ }
+
+static void print_cont(fraction f, long long ai, long long gcd, void * data)
+{
+    struct context * ctx = (struct context*) data;
+    if (ctx->index++)
+    {
+        printf(", %lld", ai);
+    }
+    else
+    {
+        printf("%s%lld", ctx->sign ? "(-) " : "", ai);
+    }
+}
+
 // {{{ parse options
 static int parsef(char * arg, fraction *f)
 {
@@ -333,6 +363,13 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         {
             switch (argv[optind][1])
             {
+            case 'c':
+            case 'g':
+            case 's':
+            case 'v':
+                ctx->show_mod = argv[optind][1];
+                ++optind; parsed = 1;
+                break;
             case 'h':
                 help(argv[0]);
                 exit(0);
@@ -382,6 +419,12 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                 {
                     switch (argv[optind][2])
                     {
+                    case 'c':
+                    case 'g':
+                    case 's':
+                        ctx->show_mod = argv[optind][2];
+                        ++optind; parsed = 1;
+                        break;
                     case 'h':
                         help(argv[0]);
                         exit(0);
@@ -393,9 +436,14 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                         ctx->is_welformed = 1;
                         ++optind; parsed = 1;
                         break;
-                    case 'v':
-                        printf("%s\n", VERSION);
-                        exit (0);
+                    case 'v': /* verbose or version */
+                        ctx->show_mod = 'v';
+                        ++optind; parsed = 1;
+                        if (strstr(argv[optind], "version"))
+                        {
+                            printf("%s\n", VERSION);
+                            exit (0);
+                        }
                         break;
                     case 'm':
                         {
@@ -451,9 +499,22 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
     {
         return 1;
     }
-    if (!parsef(argv[optind++], &ctx->f))
+    if (!strchr(argv[optind], '/'))
     {
-        return 1;
+        if (!parsef(argv[optind++], &ctx->f))
+        {
+            return 1;
+        }
+    }
+    else
+    {
+        char * p = strchr(argv[optind], '/');
+        *p++ = '\0';
+        if (!parsef(argv[optind], &ctx->f))
+        {
+            return 1;
+        }
+        argv[optind] = p;
     }
     if (ctx->f.n < 0)
     {
@@ -470,6 +531,24 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
     if (optind < argc)
     {
         fraction f;
+
+        if (*argv[optind] == '/')
+        {
+            if (argv[optind][1] == '\0')
+            {
+                optind++;
+                if (optind == argc)
+                {
+                    fprintf(stderr, "no denominator\n");
+                    return 1;
+                }
+            }
+            else
+            {
+                argv[optind]++;
+            }
+        }
+
         if (!parsef(argv[optind++], &f))
         {
             return 1;
@@ -504,6 +583,7 @@ int main(int argc, char ** argv)
     /* default settings */
     ctx.maxnum = ctx.maxden = LLONG_MAX;
     ctx.is_welformed = 1;
+    ctx.show_mod = 'l';
 
     /* parse options */
     if (parse_options(argc, argv, &ctx) != 0)
@@ -514,16 +594,48 @@ int main(int argc, char ** argv)
     /* calculate float value for latter use */
     ctx.x = (double)ctx.f.n/(double)ctx.f.d;
 
-    if (ctx.is_welformed)
+    switch (ctx.show_mod)
     {
-        cfr(ctx.f, ctx.maxnum, ctx.maxden, on_step, &ctx);
-        print_welformed(&ctx);
+    case 'g':
+        /* gcd is conflict with float */
+        if (ctx.is_float)
+        {
+            fprintf(stderr, "calculating gcd from float numbers is unsupported.");
+            exit(1);
+        }
+        cfr(ctx.f, ctx.maxnum, ctx.maxden, print_gcd, &ctx);
+        break;
+    case 's':
+        /* show simple */
+        {
+            fraction f = cfr(ctx.f, ctx.maxnum, ctx.maxden, print_dumy, &ctx);
+            if (ctx.is_welformed)
+            {
+                printf("%s%lld / %lld\n", ctx.sign ? "- " : "", f.n, f.d);
+            }
+            else
+            {
+                printf("%s%lld/%lld\n", ctx.sign ? "-" : "", f.n, f.d);
+            }
+        }
+        break;
+    case 'c':
+        /* show continued fraction */
+        cfr(ctx.f, ctx.maxnum, ctx.maxden, print_cont, &ctx);
+        printf("\n");
+        break;
+    /*case 'v':*/
+    default:
+        if (ctx.is_welformed)
+        {
+            cfr(ctx.f, ctx.maxnum, ctx.maxden, on_step, &ctx);
+            print_welformed(&ctx);
+        }
+        else
+        {
+            cfr(ctx.f, ctx.maxnum, ctx.maxden, print_verbose, &ctx);
+        }
     }
-    else
-    {
-        cfr(ctx.f, ctx.maxnum, ctx.maxden, print_result, &ctx);
-    }
-
     return 0;
 }
 
