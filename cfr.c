@@ -43,7 +43,7 @@ typedef struct _fraction fraction;
  */
 typedef void(*cfrcb)(fraction f, long long ai, long long gcd, void * data);
 
-static void cfr(fraction f, long long maxden, cfrcb print, void * data)
+static fraction cfr(fraction f, long long maxnum, long long maxden, cfrcb print, void * data)
 {
     long long m[4];
     long long ai;
@@ -57,10 +57,12 @@ static void cfr(fraction f, long long maxden, cfrcb print, void * data)
         long long mod;
 
         ai = f.n / f.d;
+        mod = f.n % f.d;
+
         t.n = m[0] * ai + m[2];
         t.d = m[1] * ai + m[3];
 
-        if (t.d > maxden)
+        if (t.n > maxnum || t.d > maxden)
         {
             break;
         }
@@ -71,12 +73,13 @@ static void cfr(fraction f, long long maxden, cfrcb print, void * data)
         m[0] = t.n;
         m[1] = t.d;
 
-        mod = f.n % f.d;
         print(t, ai, mod ? 0 : f.d, data);
 
         f.n = f.d;
         f.d = mod;
     }
+
+    return (fraction){m[0], m[1]};
 }
 
 static void help(char * name)
@@ -96,11 +99,13 @@ static void help(char * name)
     fprintf(stderr, "\nOPTIONS\n"
                     "    num    - is real number , or numerator of a fraction\n\n"
                     "    den    - [optional] is the denominator, integer or another real\n\n"
-                    "    -m maxden       is the maximum denominator allowed\n\n"
-                    "    -w|--welformed  print in welformed style\n\n"
-                    "    -p|--plain      print in plain style\n\n"
-                    "    -h|--help       show help\n\n"
-                    "    --version       show version\n\n");
+                    "    -m integer|-minteger|--maxden=integer\n"
+                    "                      specify the maximum denominator\n\n"
+                    "    --maxnum=integer  specify the maximum numerator\n\n"
+                    "    -w|--welformed    print in welformed style\n\n"
+                    "    -p|--plain        print in plain style\n\n"
+                    "    -h|--help         show help\n\n"
+                    "    --version         show version\n\n");
 
     fd = dup(1);
     dup2(2, 1); /* redirect stdout to stderr */
@@ -144,6 +149,7 @@ struct cfstep {
 struct context {
     fraction f;
     double x;
+    long long maxnum;
     long long maxden;
     int sign;
     int is_float;
@@ -356,8 +362,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                     {
                         return 1;
                     }
-                    ++optind;
-                    parsed = 1;
+                    ++optind; parsed = 1;
                 }
                 break;
             case 'w':
@@ -370,8 +375,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             case 'p':
                 {
                     ctx->is_welformed = 0;
-                    ++optind;
-                    parsed = 1;
+                    ++optind; parsed = 1;
                 }
                 break;
             case '-':
@@ -383,18 +387,43 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                         exit(0);
                     case 'p':
                         ctx->is_welformed = 0;
-                        ++optind;
-                        parsed = 1;
+                        ++optind; parsed = 1;
                         break;
                     case 'w':
                         ctx->is_welformed = 1;
-                        ++optind;
-                        parsed = 1;
+                        ++optind; parsed = 1;
                         break;
                     case 'v':
                         printf("%s\n", VERSION);
                         exit (0);
                         break;
+                    case 'm':
+                        {
+                            long long m;
+                            if (strstr(&argv[optind][2], "maxnum=") == &argv[optind][2])
+                            {
+                                optarg = &argv[optind][9];
+                                m = atoll(optarg);
+                                if (m > 0)
+                                {
+                                    ctx->maxnum = m;
+                                    ++optind; parsed = 1;
+                                }
+                                break;
+                            }
+                            else if (strstr(&argv[optind][2], "maxden=") == &argv[optind][2])
+                            {
+                                optarg = &argv[optind][9];
+                                m = atoll(optarg);
+                                if (m > 0)
+                                {
+                                    ctx->maxden = m;
+                                    ++optind; parsed = 1;
+                                }
+                                break;
+                            }
+                            return 0;
+                        }
                     default:
                         break;
                     }
@@ -473,7 +502,7 @@ int main(int argc, char ** argv)
     struct context ctx = {0};
 
     /* default settings */
-    ctx.maxden = LLONG_MAX;
+    ctx.maxnum = ctx.maxden = LLONG_MAX;
     ctx.is_welformed = 1;
 
     /* parse options */
@@ -487,12 +516,12 @@ int main(int argc, char ** argv)
 
     if (ctx.is_welformed)
     {
-        cfr(ctx.f, ctx.maxden, on_step, &ctx);
+        cfr(ctx.f, ctx.maxnum, ctx.maxden, on_step, &ctx);
         print_welformed(&ctx);
     }
     else
     {
-        cfr(ctx.f, ctx.maxden, print_result, &ctx);
+        cfr(ctx.f, ctx.maxnum, ctx.maxden, print_result, &ctx);
     }
 
     return 0;
