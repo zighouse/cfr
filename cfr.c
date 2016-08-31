@@ -20,132 +20,238 @@
 ** Instead of keeping the sequence of continued fraction terms,
 ** we just keep the last partial product of these matrices.
 */
-
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+
+struct _fraction {
+    long long n;
+    long long d;
+};
+typedef struct _fraction fraction;
 
 /*
- * inform that ai is calculated,
- * num - numerator of simple fraction at current iteration.
- * den - denominator of simple fraction at current iteration.
- * ai  - continuous fraction factor.
+ * inform that after an iteration, the continued fraction coefficient ai is calculated.
+ * f   - fraction at current iteration.
+ * ai  - continued fraction coefficient.
  * gcd - gcd or 0 if is approximation.
  * data - opaque user data
  */
-typedef void(*infocb)(long long num, long long den, long long ai, long long gcd,
-                      void * data);
+typedef void(*cfrcb)(fraction f, long long ai, long long gcd, void * data);
 
-static void cfr(long long num, long long den, long long maxden, infocb print, void * data)
+static void cfr(fraction f, long long maxden, cfrcb print, void * data)
 {
-    long long m[2][2];
+    long long m[4];
     long long ai;
 
-    m[0][0] = m[1][1] = 1ll;
-    m[0][1] = m[1][0] = 0ll;
+    m[0] = m[3] = 1ll;
+    m[2] = m[1] = 0ll;
 
-    while (den)
+    while (f.d)
     {
-        long long t, mod;
+        fraction t;
+        long long mod;
 
-        ai = num / den;
-        if (m[1][0] *  ai + m[1][1] > maxden)
+        ai = f.n / f.d;
+        if (m[1] *  ai + m[3] > maxden)
         {
             break;
         }
 
-        t = m[0][0] * ai + m[0][1];
-        m[0][1] = m[0][0];
-        m[0][0] = t;
-        t = m[1][0] * ai + m[1][1];
-        m[1][1] = m[1][0];
-        m[1][0] = t;
+        t.n = m[0] * ai + m[2];
+        t.d = m[1] * ai + m[3];
 
-        mod = num % den;
-        print(m[0][0], m[1][0], ai, mod ? 0 : den, data);
-        num = den;
-        den = mod;
+        m[2] = m[0];
+        m[3] = m[1];
+
+        m[0] = t.n;
+        m[1] = t.d;
+
+        mod = f.n % f.d;
+        print(t, ai, mod ? 0 : f.d, data);
+
+        f.n = f.d;
+        f.d = mod;
     }
 }
 
 static void help(char * name)
 {
     int main(int argc, char ** argv);
-    char * argv[4];
+    char * argv[5];
+    int fd;
 
     argv[0] = name;
-    fprintf(stderr, "lists a serial of simple fractions approximate original fraction or real,\n"
-                    "and continuous fraction factors, errors or gcd.\n\n");
-    fprintf(stderr, "usage: %s num [den] [-m maxden]\n", name);
-    fprintf(stderr, "  num    - is real number , or numerator of a fraction\n");
-    fprintf(stderr, "  den    - [optional] is the denominator, integer or another real\n");
-    fprintf(stderr, "  maxden - [optional] is the maximum denominator allowed\n");
+    fprintf(stderr, "Lists a serial of simple fractions approximate original fraction or real,\n"
+                    "and continued fraction coefficients, errors or gcd.\n\n");
 
-    fprintf(stderr, "\nfor example:\n\n");
+    fprintf(stderr, "SYNOPSIS\n");
+    fprintf(stderr, "    %s [options] num [den]\n", name);
 
-    fprintf(stderr, "$ %s 3.14159 -m 200\n", name);
-    argv[1] = "3.14159";
-    argv[2] = "-m";
-    argv[3] = "200";
+    fprintf(stderr, "\nOPTIONS\n"
+                    "    num    - is real number , or numerator of a fraction\n\n"
+                    "    den    - [optional] is the denominator, integer or another real\n\n"
+                    "    -m maxden\n"
+                    "                     is the maximum denominator allowed\n\n"
+                    "    -w|--welformed\n"
+                    "                     print in welformed style\n\n"
+                    "    -p|--plain\n"
+                    "                     print in plain style\n\n");
+
+    fd = dup(1);
+    dup2(2, 1); /* redirect stdout to stderr */
+
+    fprintf(stderr, "\nEXAMPLE\n\n");
+
+    fprintf(stderr, "$ %s -m 200 -w 3.14159\n", name);
+    argv[1] = "-m";
+    argv[2] = "200";
+    argv[3] = "-w";
+    argv[4] = "3.14159";
+    main(5, argv);
+    fprintf(stderr, "result shows the best fraction with den<=200 approx 3.14159 is 355/113,\n");
+    fprintf(stderr, "and the continued fraction is: 3 + 1/(7 + 1/(15 + 1/(1 + ...))).\n");
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "$ %s -w 1920 1080\n", name);
+    argv[1] = "-w";
+    argv[2] = "1920";
+    argv[3] = "1080";
     main(4, argv);
-    fprintf(stderr, "  result shows the best fraction with den<=200 approx 3.14159 is 355/113,\n");
-    fprintf(stderr, "  and the continuous fraction is: 3 + 1/(7 + 1/(15 + 1/(1 + ...))).\n");
+    fprintf(stderr, "result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120.\n");
     fprintf(stderr, "\n");
 
-    fprintf(stderr, "$ %s 1920 1080\n", name);
-    argv[1] = "1920";
-    argv[2] = "1080";
-    main(3, argv);
-    fprintf(stderr, "  result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120.\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "AUTHOR\n"
+                    "    Written by Xie Zhigang, 27 Aug 2016, based on version of:\n"
+                    "        Arno Formella, May 2008\n"
+                    "        David Eppstein / UC Irvine / 8 Aug 1993\n");
 
-    fprintf(stderr, "- Xie Zhigang, 27 Aug 2016\n");
-    fprintf(stderr, "- Arno Formella, May 2008\n");
-    fprintf(stderr, "- David Eppstein / UC Irvine / 8 Aug 1993\n");
+    dup2(fd, 1); /* restore stdout redirection */
 }
 
-struct my_data {
-    long long num;
-    long long den;
-    long long maxden;
-    double x;
-    int sign;
-    int is_float;
-    int index;
+struct cfstep {
+    fraction simp;
+    long long ai;
+    long long gcd;
+    struct cfstep * next;
+    struct cfstep * prev;
 };
 
-static void print_result(long long n, long long d, long long ai, long long gcd, void * data)
+struct context {
+    fraction f;
+    double x;
+    long long maxden;
+    int sign;
+    int is_float;
+    int is_welformed;
+    int index;
+    struct cfstep * steps;
+};
+
+static void print_result(fraction f, long long ai, long long gcd, void * data)
 {
-    struct my_data * p = (struct my_data*) data;
+    struct context * ctx = (struct context*) data;
     // columns: simp, ai, error or gcd
     if (gcd)
     {
-        if (p->is_float)
+        if (ctx->is_float)
         { 
-            printf("%s%lld/%lld %s%lld err=0\n",
-                   (p->sign ? "-" : ""), n, d,
-                   (p->sign && !++p->index? "-" : ""), ai);
+            printf("%s%lld/%lld %lld err=0\n",
+                   (ctx->sign ? "- " : ""), f.n, f.d, ai);
         }
         else
         {
-            printf("%s%lld/%lld %s%lld gcd=%lld\n",
-                   (p->sign ? "-" : ""), n, d,
-                   (p->sign && !++p->index? "-" : ""), ai,
-                   gcd);
+            printf("%s%lld/%lld %lld gcd=%lld\n",
+                   (ctx->sign ? "- " : ""), f.n, f.d, ai, gcd);
         }
     }
     else
     {
-        printf("%s%lld/%lld %s%lld err=%e\n",
-               (p->sign ? "-" : ""), n, d,
-               (p->sign && !++p->index? "-" : ""), ai,
-               p->x - (double)n/(double)d);
+        printf("%s%lld/%lld %lld err=%e\n",
+               (ctx->sign ? "- " : ""), f.n, f.d,
+               ai, ctx->x - (double)f.n/(double)f.d);
     }
 }
 
-// {{{ parse long-long int from possible floats
-static int parsell(char * arg, long long * value, long long * mantisa)
+static void on_step(fraction f, long long ai, long long gcd, void * data)
+{
+    struct context * ctx = (struct context*) data;
+    struct cfstep * step = (struct cfstep*)malloc(sizeof(struct cfstep));
+    step->simp = f;
+    step->ai = ai;
+    step->gcd = gcd;
+    step->next = ctx->steps;
+    if (ctx->steps)
+    {
+        ctx->steps->prev = step;
+    }
+    ctx->steps = step;
+}
+
+// print welformed list
+static void print_welformed(void * data)
+{
+    struct context * ctx = (struct context*) data;
+    struct cfstep * head;
+    int field_len[3];
+    char buf[100], *sign;
+
+    if (!ctx->steps)
+    {
+        return;
+    }
+
+    // get max field length
+    field_len[0] = snprintf(buf, sizeof buf, "%lld", ctx->steps->simp.n);
+    field_len[1] = snprintf(buf, sizeof buf, "%lld", ctx->steps->simp.d);
+    field_len[2] = snprintf(buf, sizeof buf, "%lld", ctx->steps->ai);
+    
+    // reorder the list
+    head = NULL;
+    while (ctx->steps)
+    {
+        int len;
+        struct cfstep * t = ctx->steps;
+        ctx->steps = ctx->steps->next;
+        t->next = head;
+        head = t;
+        len = snprintf(buf, sizeof buf, "%lld", t->ai);
+        field_len[2] = field_len[2] > len ? field_len[2] : len;
+    }
+    ctx->steps = head;
+
+    // print welformed list
+    sign = ctx->sign ? " - " : " ";
+    for (head = ctx->steps; head; head = head->next)
+    {
+        if (head->gcd)
+        {
+            if (ctx->is_float)
+            { 
+                snprintf(buf, sizeof buf, "%s", "err = 0");
+            }
+            else
+            {
+                snprintf(buf, sizeof buf, "gcd = %lld", head->gcd);
+            }
+        }
+        else
+        {
+            snprintf(buf, sizeof buf, "err = %e",
+                     ctx->x - (double)head->simp.n/(double)head->simp.d);
+        }
+        printf("%s%*lld / %-*lld  %*lld  %s\n",
+               sign, field_len[0], head->simp.n, 
+                     field_len[1], head->simp.d,
+                     field_len[2], head->ai,
+               buf);
+    }
+}
+
+// {{{ parse options
+static int parsef(char * arg, fraction *f)
 {
     long long v, m;
 
@@ -156,8 +262,7 @@ static int parsell(char * arg, long long * value, long long * mantisa)
 
         if (v == LLONG_MAX || v == LLONG_MIN)
         {
-            fprintf(stderr, "wrong range of number: %s\n", arg);
-            return 0;
+            goto bail;
         }
 
         // posible float
@@ -175,14 +280,12 @@ static int parsell(char * arg, long long * value, long long * mantisa)
 
                 if (v == LLONG_MAX || v == LLONG_MIN)
                 {
-                    fprintf(stderr, "wrong range of number: %s\n", arg);
-                    return 0;
+                    goto bail;
                 }
 
                 if (endptr && *endptr)
                 {
-                    fprintf(stderr, "parse number failed: %s\n", arg);
-                    return 0;
+                    goto bail;
                 }
 
                 for (; len > 0; --len)
@@ -191,120 +294,189 @@ static int parsell(char * arg, long long * value, long long * mantisa)
                 }
                 break;
             }
-
-            fprintf(stderr, "parse number failed: %s\n", arg);
-            return 0;
+            goto bail;
         }
     } while (0);
 
-    *value = v;
-    *mantisa = m;
+    f->n = v;
+    f->d = m;
     return 1;
+bail:
+    fprintf(stderr, "parse number failed: %s\n", arg);
+    return 0;
+}
+
+static int parse_options(int argc, char ** argv, struct context *ctx)
+{
+    int optind, i;
+    // parse named options
+    optind = 1;
+    for (i = argc; i > 1; --i)
+    {
+        char * optarg;
+        int parsed = 0;
+        // parse maxden
+        if (argv[optind][0] == '-')
+        {
+            switch (argv[optind][1])
+            {
+            case 'm':
+                {
+                    long long md = 0;
+                    if (argv[optind][2] != '\0')
+                    {
+                        optarg = &argv[optind][2];
+                    }
+                    else if (optind < argc - 1)
+                    {
+                        optarg = argv[++optind];
+                        --i;
+                    }
+
+                    md = atoll(optarg);
+                    if (md > 0)
+                    {
+                        ctx->maxden = md;
+                    }
+                    else
+                    {
+                        return 1;
+                    }
+                    ++optind;
+                    parsed = 1;
+                }
+                break;
+            case 'w':
+                {
+                    ctx->is_welformed = 1;
+                    ++optind;
+                    parsed = 1;
+                }
+                break;
+            case 'p':
+                {
+                    ctx->is_welformed = 0;
+                    ++optind;
+                    parsed = 1;
+                }
+                break;
+            case '-':
+                {
+                    switch (argv[optind][2])
+                    {
+                    case 'w':
+                        ctx->is_welformed = 1;
+                        ++optind;
+                        parsed = 1;
+                        break;
+                    case 'p':
+                        ctx->is_welformed = 0;
+                        ++optind;
+                        parsed = 1;
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
+        if (!parsed)
+        {
+            // push this non-parsed to end
+            int j;
+            char * arg = argv[optind];
+            for (j = optind + 1; j < argc; ++j)
+            {
+                argv[j - 1] = argv[j];
+            }
+            argv[j - 1] = arg;
+        }
+    }
+
+    // parse numerator
+    if (optind >= argc)
+    {
+        return 1;
+    }
+    if (!parsef(argv[optind++], &ctx->f))
+    {
+        return 1;
+    }
+    if (ctx->f.n < 0)
+    {
+        ctx->f.n = -ctx->f.n;
+        ctx->sign = 1;
+    }
+    else
+    {
+        ctx->sign = 0;
+    }
+    ctx->is_float = ctx->f.d > 1;
+
+    // parse denominator
+    if (optind < argc)
+    {
+        fraction f;
+        if (!parsef(argv[optind++], &f))
+        {
+            return 1;
+        }
+        if (f.d > 1)
+        {
+            ctx->is_float = 1;
+        }
+        if (f.n < 0)
+        {
+            f.n = -f.n;
+            ctx->sign = !ctx->sign;
+        }
+        if (ctx->f.d > f.d)
+        {
+            ctx->f.d = f.n * ctx->f.d / f.d;
+        }
+        else
+        {
+            ctx->f.n = ctx->f.n * f.d / ctx->f.d;
+            ctx->f.d = f.n;
+        }
+    }
+    return 0;
 }
 // }}}
 
 int main(int argc, char ** argv)
 {
-    struct my_data data = {0};
-    int has_maxden;
-    data.maxden = LLONG_MAX;
+    struct context ctx = {0};
 
-    /* {{{ read command line arguments */
-    // parse numerator
-    if (argc < 2)
+    /* default settings */
+    ctx.maxden = LLONG_MAX;
+    ctx.is_welformed = 1;
+
+    /* parse options */
+    if (parse_options(argc, argv, &ctx) != 0)
     {
+        fprintf(stderr, "\n");
         help(argv[0]);
         exit(1);
     }
-    if (!parsell(argv[1], &data.num, &data.den))
+
+    /* calculate float value for latter use */
+    ctx.x = (double)ctx.f.n/(double)ctx.f.d;
+
+    if (ctx.is_welformed)
     {
-        exit(1);
-    }
-    if (data.num < 0)
-    {
-        data.num = -data.num;
-        data.sign = 1;
+        cfr(ctx.f, ctx.maxden, on_step, &ctx);
+        print_welformed(&ctx);
     }
     else
     {
-        data.sign = 0;
+        cfr(ctx.f, ctx.maxden, print_result, &ctx);
     }
-    data.is_float = data.den > 1;
-
-    // parse denominator or max-denominator
-    if (argc > 2)
-    {
-        // is max-denominator
-        if (strcmp(argv[2], "-m") == 0)
-        {
-            if (argc < 4)
-            {
-                help(argv[0]);
-                exit(1);
-            }
-            data.maxden = atoll(argv[3]);
-            if (data.maxden < 0)
-            {
-                fprintf(stderr, "wrong maxden = %lld\n", data.maxden);
-                exit(1);
-            }
-            has_maxden = 1;
-        }
-        else
-        {
-            // is denominator
-            long long v, r;
-            if (!parsell(argv[2], &v, &r))
-            {
-                exit(1);
-            }
-            if (v < 0)
-            {
-                v = -v;
-                data.sign = !data.sign;
-            }
-            if (data.den > r)
-            {
-                data.den = v * data.den / r;
-            }
-            else
-            {
-                data.num = data.num * r / data.den;
-                data.den = v;
-            }
-        }
-    }
-
-    // posible maxden
-    if (!has_maxden && argc > 3)
-    {
-        if (strcmp(argv[3], "-m") == 0)
-        {
-            if (argc < 5)
-            {
-                help(argv[0]);
-                exit(1);
-            }
-            data.maxden = atoll(argv[4]);
-            if (data.maxden < 0)
-            {
-                fprintf(stderr, "wrong maxden = %lld\n", data.maxden);
-                exit(1);
-            }
-        }
-        else
-        {
-            help(argv[0]);
-            exit(1);
-        }
-    }
-
-    /* }}} */
-
-    data.x = (double)data.num/(double)data.den;
-
-    cfr(data.num, data.den, data.maxden, print_result, &data);
 
     return 0;
 }
+
 // vim:set fdm=marker:
