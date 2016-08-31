@@ -57,13 +57,13 @@ static void cfr(fraction f, long long maxden, cfrcb print, void * data)
         long long mod;
 
         ai = f.n / f.d;
-        if (m[1] *  ai + m[3] > maxden)
+        t.n = m[0] * ai + m[2];
+        t.d = m[1] * ai + m[3];
+
+        if (t.d > maxden)
         {
             break;
         }
-
-        t.n = m[0] * ai + m[2];
-        t.d = m[1] * ai + m[3];
 
         m[2] = m[0];
         m[3] = m[1];
