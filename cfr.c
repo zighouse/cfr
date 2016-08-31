@@ -24,7 +24,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 
 #define VERSION "1.0"
 
@@ -84,62 +83,22 @@ static fraction cfr(fraction f, long long maxnum, long long maxden, cfrcb print,
 
 static void help(char * name)
 {
-    int main(int argc, char ** argv);
-    char * argv[5];
-    int fd;
+    fprintf(stderr, "Usage: %s [OPTIONS] NUMERATOR [[/] DENOMINATOR]\n", name);
+    fprintf(stderr, "    -m, --maxden=integer    maximum denominator\n"
+                    "        --maxnum=integer    maximum numerator\n"
+                    "    -w, --welformed         welformed style\n"
+                    "    -p, --plain             plain style\n"
+                    "    -v, --verbose           to be verbosy\n"
+                    "    -c, --cont              display continued fraction\n"
+                    "    -g, --gcd               display gcd of two integers\n"
+                    "    -s, --simple            display approximate simple fraction\n"
+                    "    -h, --help              display this help\n"
+                    "    --version               output version information\n");
 
-    argv[0] = name;
-    fprintf(stderr, "Lists a serial of simple fractions approximate original fraction or real,\n"
-                    "and continued fraction coefficients, errors or gcd.  "
-                    "Version: %s\n\n", VERSION);
-
-    fprintf(stderr, "SYNOPSIS\n");
-    fprintf(stderr, "    %s [options] num [[/] den]\n", name);
-
-    fprintf(stderr, "\nOPTIONS\n"
-                    "    num    - is real number , or numerator of a fraction\n\n"
-                    "    den    - [optional] is the denominator, integer or another real\n\n"
-                    "    -m integer|-minteger|--maxden=integer\n"
-                    "                      specify the maximum denominator\n\n"
-                    "    --maxnum=integer  specify the maximum numerator\n\n"
-                    "    -w|--welformed    print in welformed style\n\n"
-                    "    -p|--plain        print in plain style\n\n"
-                    "    -v|--verbose      show detailed iteration process (default)\n\n"
-                    "    -c|--cont         show the continued fraction\n\n"
-                    "    -g|--gcd          show the gcd of two integer numbers\n\n"
-                    "    -s|--simple       show the approximation of simple fraction\n\n"
-                    "    -h|--help         show help\n\n"
-                    "    --version         show version\n\n");
-
-    fd = dup(1);
-    dup2(2, 1); /* redirect stdout to stderr */
-
-    fprintf(stderr, "\nEXAMPLE\n\n");
-
-    fprintf(stderr, "$ %s -m 200 -w 3.14159\n", name);
-    argv[1] = "-m";
-    argv[2] = "200";
-    argv[3] = "-w";
-    argv[4] = "3.14159";
-    main(5, argv);
-    fprintf(stderr, "result shows the best fraction with den<=200 approx 3.14159 is 355/113,\n");
-    fprintf(stderr, "and the continued fraction is: 3 + 1/(7 + 1/(15 + 1/(1 + ...))).\n");
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "$ %s -w 1920 1080\n", name);
-    argv[1] = "-w";
-    argv[2] = "1920";
-    argv[3] = "1080";
-    main(4, argv);
-    fprintf(stderr, "result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120.\n");
-    fprintf(stderr, "\n");
-
-    fprintf(stderr, "AUTHOR\n"
-                    "    Written by Xie Zhigang, 27 Aug 2016, based on version of:\n"
-                    "        Arno Formella, May 2008\n"
-                    "        David Eppstein / UC Irvine / 8 Aug 1993\n");
-
-    dup2(fd, 1); /* restore stdout redirection */
+    fprintf(stderr, "\nExample:\n");
+    fprintf(stderr, "    %s -m 200 -w 3.14159\n", name);
+    fprintf(stderr, "    %s -w 1920 1080\n", name);
+    fprintf(stderr, "\nBug report to: http://github.com/zighouse/cfr/issues .\n");
 }
 
 struct cfstep {

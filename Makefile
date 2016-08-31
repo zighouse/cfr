@@ -1,2 +1,2 @@
 cfr: cfr.c
-	gcc -o $@ $^
+	gcc -O2 -o $@ $^
