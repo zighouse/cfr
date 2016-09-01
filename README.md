@@ -64,33 +64,29 @@ Example of continued fraction of an irrational number:
 
 ## OPTIONS
 
-    num    - is real number , or numerator of a fraction
+    -m, --maxden=integer   specify the maximum denominator
 
-    den    - [optional] is the denominator, integer or another real
+        --maxnum=integer   specify the maximum numerator
 
-    -m integer|-minteger|--maxden=integer
-                      specify the maximum denominator
+    -w, --welformed        display in welformed style
 
-    --maxnum=integer  specify the maximum numerator
+    -p, --plain            display in plain style
 
-    -w|--welformed    print in welformed style
+    -v, --verbose          display detailed iteration process (default)
 
-    -p|--plain        print in plain style
+    -c, --cont             display continued fraction
 
-    -v|--verbose      show detailed iteration process (default)
+    -g, --gcd              display gcd of two integers
 
-    -c|--cont         show the continued fraction
+    -s, --simple           display approximate simple fraction
 
-    -g|--gcd          show the gcd of two integer numbers
+    -h, --help             display help information
 
-    -s|--simple       show the approximation of simple fraction
-
-    -h|--help         show help
-
-    --version         show version
-
+    --version              display version information
 
 ## EXAMPLE
+
+1.
 
     $ ./cfr -m 200 -w 3.14159
 
@@ -100,7 +96,11 @@ Example of continued fraction of an irrational number:
      355 / 113   1  err = -2.920354e-06
 
 result shows the best fraction with den<=200 approx 3.14159 is 355/113,
-and the continued fraction is: 3 + 1/(7 + 1/(15 + 1/(1 + ...))).
+and the continued fraction is:
+
+    3 + 1/(7 + 1/(15 + 1/(1 + ...))).
+
+2.
 
     $ ./cfr -w 1920 1080
 
