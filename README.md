@@ -1,31 +1,35 @@
 # cfr
-NAME
-    cfr - calculate continued fraction, approximate simple fractions, gcd.
 
-SYNOPSIS
+## NAME
+
+cfr - calculate continued fraction, approximate simple fractions, gcd.
+
+## SYNOPSIS
+
     cfr [OPTIONS] NUMERATOR [[/] DENOMINATOR]
 
-DESCRIPTION
-    Process an iteration of continued fraction calculation. Print
-    approximate simple fractions, continued fractioin coeffecients, errors
-    and or gcd.
+## DESCRIPTION
 
-    As numerator and denominator of a fraction, integers and floats are all
-    aceptable. Negative numbers does not affect continued fraction
-    coeffecients. Gcd for float is unsupported.
+Process an iteration of continued fraction calculation. Print
+approximate simple fractions, continued fractioin coeffecients, errors
+and or gcd.
 
-    Continued fraction can be obtained after an iteration of representing a
-    number as the sum of its integer part and the reciprocal of another
-    number, then writing this other number as the sum of its integer part
-    and another reciprocal, and so on (see wikipedia).
+As numerator and denominator of a fraction, integers and floats are all
+aceptable. Negative numbers does not affect continued fraction
+coeffecients. Gcd for float is unsupported.
 
-    Every rational number can be expressed as a finite continued fraction,
-    while irrational numbers can only be expressed as infinite ones.  The
-    process of iteration to obtain a continued fraction is related to the
-    well known Euclidean algorithm, and for rational number it gives the
-    Greatest Common Divisor.
+Continued fraction can be obtained after an iteration of representing a
+number as the sum of its integer part and the reciprocal of another
+number, then writing this other number as the sum of its integer part
+and another reciprocal, and so on (see wikipedia).
 
-    Example of continued fraction of a rational number:
+Every rational number can be expressed as a finite continued fraction,
+while irrational numbers can only be expressed as infinite ones.  The
+process of iteration to obtain a continued fraction is related to the
+well known Euclidean algorithm, and for rational number it gives the
+Greatest Common Divisor.
+
+Example of continued fraction of a rational number:
 
       1920              1          16 x 120
      ------ = 1 + ------------- = ---------- (gcd = 120)
@@ -41,7 +45,7 @@ DESCRIPTION
      simple  ---  ---  --- ----
     fraction  1    1    4    9
 
-    Example of continued fraction of an irrational number:
+Example of continued fraction of an irrational number:
 
                             1
         pi  = 3 + ---------------------
@@ -58,7 +62,8 @@ DESCRIPTION
      simple  --- ---   ---   ---  ...
     fraction  1   7    106   113
 
-OPTIONS
+## OPTIONS
+
     num    - is real number , or numerator of a fraction
 
     den    - [optional] is the denominator, integer or another real
@@ -85,7 +90,7 @@ OPTIONS
     --version         show version
 
 
-EXAMPLE
+## EXAMPLE
 
     $ ./cfr -m 200 -w 3.14159
 
@@ -94,8 +99,8 @@ EXAMPLE
      333 / 106  15  err = 8.056604e-05
      355 / 113   1  err = -2.920354e-06
 
-    result shows the best fraction with den<=200 approx 3.14159 is 355/113,
-    and the continued fraction is: 3 + 1/(7 + 1/(15 + 1/(1 + ...))).
+result shows the best fraction with den<=200 approx 3.14159 is 355/113,
+and the continued fraction is: 3 + 1/(7 + 1/(15 + 1/(1 + ...))).
 
     $ ./cfr -w 1920 1080
 
@@ -103,9 +108,11 @@ EXAMPLE
       2 / 1  1  err = -2.222222e-01
       7 / 4  3  err = 2.777778e-02
      16 / 9  2  gcd = 120
-    result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120.
 
-AUTHOR
-    Written by Xie Zhigang based on work of Arno Formella (May 2008)
-    and David Eppstein (8 Aug 1993).
-    http://www.ics.uci.edu/~eppstein/numth/frap.c
+result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120.
+
+## AUTHOR
+
+Written by Xie Zhigang based on work of Arno Formella (May 2008)
+and David Eppstein (8 Aug 1993).
+http://www.ics.uci.edu/~eppstein/numth/frap.c
