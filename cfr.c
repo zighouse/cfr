@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <getopt.h>
 
 #define VERSION "1.0"
 
@@ -31,7 +32,13 @@ struct _fraction {
     long long n;
     long long d;
 };
+struct _settings {
+    long long max_denominator;
+    long long max_numerator;
+    int max_index;
+};
 typedef struct _fraction fraction;
+typedef struct _settings settings;
 
 /*
  * inform that after an iteration, the continued fraction coefficient ai is calculated.
@@ -42,13 +49,15 @@ typedef struct _fraction fraction;
  */
 typedef void(*cfrcb)(fraction f, long long ai, long long gcd, void * data);
 
-static int cfr(fraction f, long long maxnum, long long maxden, cfrcb print, void * data)
+static int cfr(fraction f, settings *limits, cfrcb print, void * data)
 {
     long long m[4];
     long long ai;
+    int index;
 
     m[0] = m[3] = 1ll;
     m[2] = m[1] = 0ll;
+    index = 0;
 
     while (f.d)
     {
@@ -61,18 +70,20 @@ static int cfr(fraction f, long long maxnum, long long maxden, cfrcb print, void
         t.n = m[0] * ai + m[2];
         t.d = m[1] * ai + m[3];
 
-        if (t.n > maxnum || t.d > maxden)
+        if (t.n > limits->max_numerator ||
+            t.d > limits->max_denominator ||
+            ++index >= limits->max_index)
         {
             return 0; /* not complete */
         }
+            
+        print(t, ai, mod ? 0 : f.d, data);
 
         m[2] = m[0];
         m[3] = m[1];
 
         m[0] = t.n;
         m[1] = t.d;
-
-        print(t, ai, mod ? 0 : f.d, data);
 
         f.n = f.d;
         f.d = mod;
@@ -86,6 +97,7 @@ static void help(char * name)
     fprintf(stderr, "Usage: %s [OPTIONS] NUMERATOR [[/] DENOMINATOR]\n", name);
     fprintf(stderr, "    -m, --maxden=integer    maximum denominator\n"
                     "        --maxnum=integer    maximum numerator\n"
+                    "    -n, --number=integer    maximum number of contined fraction coeffs\n"
                     "\n"
                     "    -w, --welformed         welformed style\n"
                     "    -p, --plain             plain style\n"
@@ -101,8 +113,11 @@ static void help(char * name)
 
     fprintf(stderr, "\nExample:\n");
     fprintf(stderr, "    %s 144 89\n", name);
-    fprintf(stderr, "    %s -c -w -m 200 3.1416\n", name);
-    fprintf(stderr, "    %s -c -p 2.71828182845964\n", name);
+    fprintf(stderr, "    %s -c 89 144\n", name);
+    fprintf(stderr, "    %s -c -p 55 144\n", name);
+    fprintf(stderr, "    %s -c -n 4 3.1419265\n", name);
+    fprintf(stderr, "    %s -s -m 200 3.1419265\n", name);
+    fprintf(stderr, "    %s -c -p -n 18 2.71828182845964\n", name);
     fprintf(stderr, "    %s -l 1920 1080\n", name);
     fprintf(stderr, "\nReport bugs to: http://github.com/zighouse/cfr/issues .\n");
 }
@@ -118,8 +133,7 @@ struct cfstep {
 struct context {
     fraction f;
     double x;
-    long long maxnum;
-    long long maxden;
+    settings limits;
     int sign;
     int is_float;
     int is_welformed;
@@ -152,13 +166,13 @@ static void cfrcb_print_verb(fraction f, long long ai, long long gcd, void * dat
                (ctx->sign ? "- " : ""), f.n, f.d,
                ai, ctx->x - (double)f.n/(double)f.d);
     }
+    ++ctx->index;
 }
 
 static void cfrcb_collect_steps(fraction f, long long ai, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     struct cfstep * step = (struct cfstep*)malloc(sizeof(struct cfstep));
-    ++ctx->index;
     step->simp = f;
     step->ai = ai;
     step->gcd = gcd;
@@ -168,6 +182,7 @@ static void cfrcb_collect_steps(fraction f, long long ai, long long gcd, void * 
         ctx->steps->prev = step;
     }
     ctx->steps = step;
+    ++ctx->index;
 }
 
 // print welformed list
@@ -304,18 +319,20 @@ static void cfrcb_print_gcd(fraction f, long long ai, long long gcd, void * data
     {
         printf("%lld\n", gcd);
     }
+    ++ctx->index;
 }
 
 static void cfrcb_accept_simp(fraction f, long long ai, long long gcd, void * data)
 {
-    fraction *output = (fraction *)data;
-    *output = f;
+    struct context * ctx = (struct context*) data;
+    ctx->steps[0].simp = f;
+    ++ctx->index;
 }
 
 static void cfrcb_print_cont(fraction f, long long ai, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
-    if (ctx->index++)
+    if (ctx->index)
     {
         printf(" %lld", ai);
     }
@@ -323,6 +340,7 @@ static void cfrcb_print_cont(fraction f, long long ai, long long gcd, void * dat
     {
         printf("%s%lld", ctx->sign ? "(-) " : "", ai);
     }
+    ++ctx->index;
 }
 
 static void print_report(int argc, char ** argv, void *data)
@@ -341,10 +359,11 @@ static void print_report(int argc, char ** argv, void *data)
     printf("    fraction := %s%lld / %lld\n", sign, ctx->f.n, ctx->f.d);
     printf("        real := %s%e (%s)\n", sign, ctx->x, (ctx->is_float ? "float input" : "evaluated"));
     printf("\nConfiguration & limits:\n");
-    printf("     sizeof integer := %lu\n", sizeof(long long) * 8);
-    printf("        max integer := %lld\n", LLONG_MAX);
-    printf("      max numerator := %lld\n", ctx->maxnum);
-    printf("    max denominator := %lld\n", ctx->maxden);
+    printf("      sizeof integer := %lu\n", sizeof(long long) * 8);
+    printf("         max integer := %lld\n", LLONG_MAX);
+    printf("       max numerator := %lld\n", ctx->limits.max_numerator);
+    printf("     max denominator := %lld\n", ctx->limits.max_denominator);
+    printf("max number of levels := %d\n", ctx->limits.max_index);
 
     ctx->is_welformed = 1;
 
@@ -425,154 +444,104 @@ bail:
 
 static int parse_options(int argc, char ** argv, struct context *ctx)
 {
-    int optind, i;
+    int c;
+    int digit_optind = 0;
+
     // parse named options
-    optind = 1;
+    while (1) {
+        int this_option_optind = optind ? optind : 1;
+        int option_index = 0;
+        static struct option long_options[] = {
+            {"maxden",    required_argument, 0, 'm'},
+            {"maxnum",    required_argument, 0,  0 },
+            {"number",    required_argument, 0, 'n'},
+            {"welformed", no_argument,       0, 'w'},
+            {"plain",     no_argument,       0, 'p'},
+            {"report",    no_argument,       0, 'r'},
+            {"cont",      no_argument,       0, 'c'},
+            {"gcd",       no_argument,       0, 'g'},
+            {"simple",    no_argument,       0, 's'},
+            {"list",      no_argument,       0, 'l'},
+            {"help",      no_argument,       0, 'h'},
+            {"version",   no_argument,       0,  0 },
+            {0,           0,                 0,  0 }
+        };
+
+        c = getopt_long(argc, argv, "m:n:wprcgslh",
+                        long_options, &option_index);
+        if (c == -1)
+        {
+            break;
+        }
+
+        switch (c) {
+        case 0:
+            if (strcmp(long_options[option_index].name, "version") == 0)
+            {
+                printf("%s\n", VERSION);
+                exit(0);
+            }
+            else
+            if (strcmp(long_options[option_index].name, "maxnum") == 0)
+            {
+                int n = atoll(optarg);
+                if (n > 0)
+                {
+                    ctx->limits.max_numerator = n;
+                }
+            }
+            break;
+
+        case 'm':
+            {
+                long long n = atoll(optarg);
+                if (n > 0)
+                {
+                    ctx->limits.max_denominator = n;
+                }
+            }
+            break;
+
+        case 'n':
+            {
+                long long i = atoi(optarg);
+                if (i > 0)
+                {
+                    ctx->limits.max_index = i;
+                }
+            }
+            break;
+
+        case 'w':
+            ctx->is_welformed = 1;
+            break;
+
+        case 'p':
+            ctx->is_welformed = 0;
+            break;
+
+        case 'r':
+        case 'c':
+        case 'g':
+        case 's':
+        case 'l':
+            ctx->show_mod = c;
+            break;
+
+        case 'h':
+            help(argv[0]);
+            exit(0);
+            break;
+
+        default:
+            printf("?? getopt returned character code 0%o ??\n", c);
+        }
+    }
+
     if (argc == 1)
     {
         help(argv[0]);
-        exit (0);
-    }
-    for (i = argc; i > 1; --i)
-    {
-        char * optarg;
-        int parsed = 0;
-        // parse maxden
-        if (argv[optind][0] == '-')
-        {
-            switch (argv[optind][1])
-            {
-            case 'c':
-            case 'g':
-            case 's':
-            case 'r':
-            case 'l':
-                ctx->show_mod = argv[optind][1];
-                ++optind; parsed = 1;
-                break;
-            case 'h':
-                help(argv[0]);
-                exit(0);
-            case 'm':
-                {
-                    long long md = 0;
-                    if (argv[optind][2] != '\0')
-                    {
-                        optarg = &argv[optind][2];
-                    }
-                    else if (optind < argc - 1)
-                    {
-                        optarg = argv[++optind];
-                        --i;
-                    }
-                    else
-                    {
-                        return 1;
-                    }
-
-                    md = atoll(optarg);
-                    if (md > 0)
-                    {
-                        ctx->maxden = md;
-                    }
-                    else
-                    {
-                        return 1;
-                    }
-                    ++optind; parsed = 1;
-                }
-                break;
-            case 'w':
-                {
-                    ctx->is_welformed = 1;
-                    ++optind;
-                    parsed = 1;
-                }
-                break;
-            case 'p':
-                {
-                    ctx->is_welformed = 0;
-                    ++optind; parsed = 1;
-                }
-                break;
-            case '-':
-                {
-                    switch (argv[optind][2])
-                    {
-                    case 'c':
-                    case 'g':
-                    case 's':
-                    case 'r':
-                    case 'l':
-                        ctx->show_mod = argv[optind][2];
-                        ++optind; parsed = 1;
-                        break;
-                    case 'h':
-                        help(argv[0]);
-                        exit(0);
-                    case 'p':
-                        ctx->is_welformed = 0;
-                        ++optind; parsed = 1;
-                        break;
-                    case 'w':
-                        ctx->is_welformed = 1;
-                        ++optind; parsed = 1;
-                        break;
-                    case 'v':
-                        ++optind; parsed = 1;
-                        if (strstr(argv[optind], "version"))
-                        {
-                            printf("%s\n", VERSION);
-                            exit (0);
-                        }
-                        break;
-                    case 'm':
-                        {
-                            long long m;
-                            if (strstr(&argv[optind][2], "maxnum=") == &argv[optind][2])
-                            {
-                                optarg = &argv[optind][9];
-                                m = atoll(optarg);
-                                if (m > 0)
-                                {
-                                    ctx->maxnum = m;
-                                    ++optind; parsed = 1;
-                                }
-                                break;
-                            }
-                            else if (strstr(&argv[optind][2], "maxden=") == &argv[optind][2])
-                            {
-                                optarg = &argv[optind][9];
-                                m = atoll(optarg);
-                                if (m > 0)
-                                {
-                                    ctx->maxden = m;
-                                    ++optind; parsed = 1;
-                                }
-                                break;
-                            }
-                            return 0;
-                        }
-                    default:
-                        break;
-                    }
-                }
-                break;
-            default:
-                break;
-            }
-        }
-        if (!parsed)
-        {
-            // push this non-parsed to end
-            int j;
-            char * arg = argv[optind];
-            for (j = optind + 1; j < argc; ++j)
-            {
-                argv[j - 1] = argv[j];
-            }
-            argv[j - 1] = arg;
-        }
+        exit(0);
     }
 
     // parse numerator
@@ -661,9 +630,10 @@ int main(int argc, char ** argv)
 {
     struct context ctx;
 
-    /* default settings */
+    /* default limits */
     memset(&ctx, 0, sizeof(ctx));
-    ctx.maxnum = ctx.maxden = LLONG_MAX;
+    ctx.limits.max_numerator = ctx.limits.max_denominator = LLONG_MAX;
+    ctx.limits.max_index = INT_MAX;
     ctx.is_welformed = 1;
     ctx.show_mod = 'r';
 
@@ -685,13 +655,15 @@ int main(int argc, char ** argv)
             fprintf(stderr, "calculating gcd from float numbers is unsupported.");
             exit(1);
         }
-        cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_print_gcd, &ctx);
+        cfr(ctx.f, &ctx.limits, cfrcb_print_gcd, &ctx);
         break;
     case 's':
         /* show simple */
         {
             fraction f;
-            cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_accept_simp, &f);
+            ctx.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
+            cfr(ctx.f, &ctx.limits, cfrcb_accept_simp, &ctx);
+            f = ctx.steps->simp;
             if (ctx.is_welformed)
             {
                 printf("%s%lld / %lld\n", ctx.sign ? "- " : "", f.n, f.d);
@@ -706,12 +678,12 @@ int main(int argc, char ** argv)
         /* show continued fraction */
         if (ctx.is_welformed)
         {
-            ctx.is_complete = cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_collect_steps, &ctx);
+            ctx.is_complete = cfr(ctx.f, &ctx.limits, cfrcb_collect_steps, &ctx);
             print_welformed_cont(&ctx);
         }
         else
         {
-            cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_print_cont, &ctx);
+            cfr(ctx.f, &ctx.limits, cfrcb_print_cont, &ctx);
             printf("\n");
         }
         break;
@@ -719,16 +691,16 @@ int main(int argc, char ** argv)
     case 'l':
         if (ctx.is_welformed)
         {
-            cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_collect_steps, &ctx);
+            cfr(ctx.f, &ctx.limits, cfrcb_collect_steps, &ctx);
             print_welformed(&ctx);
         }
         else
         {
-            cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_print_verb, &ctx);
+            cfr(ctx.f, &ctx.limits, cfrcb_print_verb, &ctx);
         }
         break;
     default:
-        ctx.is_complete = cfr(ctx.f, ctx.maxnum, ctx.maxden, cfrcb_collect_steps, &ctx);
+        ctx.is_complete = cfr(ctx.f, &ctx.limits, cfrcb_collect_steps, &ctx);
         print_report(argc, argv, &ctx);
     }
     return 0;
