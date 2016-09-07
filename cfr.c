@@ -4,11 +4,6 @@
 ** With corrections from Arno Formella, May 2008 (http://www.ics.uci.edu/~eppstein/numth/frap.c)
 ** David Eppstein / UC Irvine / 8 Aug 1993
 **
-** usage: cfr num [den] [-m maxden]
-**   num    is real number to approx, or numerator, integer or float
-**   den    [optional] is the denominator, integer or float
-**   maxden [optional] is the maximum denominator allowed
-**
 ** based on the theory of continued fractions
 ** if x = a1 + 1/(a2 + 1/(a3 + 1/(a4 + ...)))
 ** then best approximation is found by truncating this series
