@@ -13,18 +13,22 @@ struct _fraction {
 };
 typedef struct _fraction fraction;
 
-struct _cf {
+struct _cf;
+struct _cf_class {
     long long (*next_term)(struct _cf *c);
     int (*is_finished)(struct _cf *c);
-    void (*reset)(struct _cf *c);
     void (*free)(struct _cf *c);
 };
+struct _cf {
+    struct _cf_class * object_class;
+};
+typedef struct _cf_class cf_class;
 typedef struct _cf cf;
 
-#define cf_next_term(c)    (c)->next_term(c)
-#define cf_is_finished(c)  (c)->is_finished(c)
-#define cf_reset(c)        (c)->reset(c)
-#define cf_free(c)         (c)->free(c)
+#define cf_class(c)        (c)->object_class
+#define cf_next_term(c)    cf_class(c)->next_term(c)
+#define cf_is_finished(c)  cf_class(c)->is_finished(c)
+#define cf_free(c)         cf_class(c)->free(c)
 
 cf * cf_create_from_fraction(fraction f);
 

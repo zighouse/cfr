@@ -10,136 +10,85 @@
  * \author xiezhigang
  * \date   2016-09-07
  */
+static cf_class _rational_class;
 
 struct _rational {
     cf base;
-    long long * term;
-    long nterm;
-    long i;
+    fraction current;
 };
 typedef struct _rational rational;
 
-static long long rational_next_term(cf *c)
+static long long rational_next_term(struct _cf *c)
 {
-    rational *r = (rational *)c;
-    if (r->i >= r->nterm)
+    long long mod, v;
+    rational * r = (rational*) c;
+
+    if (r->current.d == 0ll)
+    {
         return LLONG_MAX;
-    return r->term[r->i++];
+    }
+
+    if (r->current.n >= 0ll)
+    {
+        v = r->current.n / r->current.d;
+        mod = r->current.n % r->current.d;
+        r->current.n = r->current.d;
+        r->current.d = mod;
+    }
+    else
+    {
+        v = r->current.n / r->current.d - 1ll;
+        mod = r->current.n % r->current.d;
+        r->current.n = r->current.d;
+        r->current.d = r->current.d + mod;
+    }
+    return v;
 }
 
-static int rational_is_finished(cf *c)
+static int rational_is_finished(struct _cf *c)
 {
-    rational *r = (rational *)c;
-    return r->i >= r->nterm;
+    rational * r = (rational*) c;
+    return r->current.d == 0ll;
 }
 
-static void rational_reset(cf *c)
+static void rational_free(struct _cf *c)
 {
-    rational *r = (rational*)c;
-    r->i = 0;
-}
-
-static void rational_free(cf *c)
-{
-    rational * r = (rational *)c;
-    free(r->term);
+    rational * r = (rational*) c;
     free(r);
 }
 
+static cf_class _rational_class = {
+    rational_next_term,
+    rational_is_finished,
+    rational_free
+};
+
 cf * cf_create_from_fraction(fraction f)
 {
-    rational *r;
-    long long buff[512];
-    int index, sign;
-    long long mod;
+    rational * r;
+    int sign = 0;
 
     r = (rational*) malloc(sizeof(rational));
     if (!r)
-        return NULL; /* no memory */
+        return NULL;
 
-    r->term = NULL;
-    r->nterm = 0;
-    r->i = 0;
-    r->base.next_term = rational_next_term;
-    r->base.is_finished = rational_is_finished;
-    r->base.reset = rational_reset;
-    r->base.free = rational_free;
+    /* init object for class or type */
+    r->base.object_class = &_rational_class;
 
-    sign = 0;
+    /* init object for data */
     if (f.n < 0)
     {
-        f.n = -f.n;
         sign = 1;
+        f.n = -f.n;
     }
     if (f.d < 0)
     {
+        sign = !! sign;
         f.d = -f.d;
-        sign = !sign;
     }
-
-    index = 0;
-
-    // canonicalize for menus
-    if (sign)
-    {
-        mod = f.n % f.d;
-        if (mod == 0)
-        {
-            buff[index++] = -f.n / f.d;
-            /* complete */
-            f.d = mod;
-        }
-        else
-        {
-            long long t = f.d;
-            buff[index++] = -f.n / f.d - 1;
-            f.n = t;
-            f.d = f.d - mod;
-        }
-    }
-
-    while (f.d)
-    {
-        buff[index++] = f.n / f.d;
-
-        mod = f.n % f.d;
-        f.n = f.d;
-        f.d = mod;
-
-        if (index == 256)
-        {
-            // rewind buffer
-            long long * term = malloc((r->nterm + index) * sizeof(long long));
-            if (!term)
-                return NULL; /* no memory */
-
-            if (r->nterm > 0 && r->term)
-            {
-                memcpy(term, r->term, r->nterm * sizeof(long long));
-                free(r->term);
-            }
-            memcpy(&term[r->nterm], buff, index * sizeof(long long));
-            r->nterm += index;
-            r->term = term;
-            index = 0;
-        }
-    }
-
-    {
-        // rewind buffer
-        long long * term = malloc((r->nterm + index) * sizeof(long long));
-        if (!term)
-            return NULL; /* no memory */
-
-        if (r->nterm > 0 && r->term)
-        {
-            memcpy(term, r->term, r->nterm * sizeof(long long));
-            free(r->term);
-        }
-        memcpy(&term[r->nterm], buff, index * sizeof(long long));
-        r->nterm += index;
-        r->term = term;
-    }
+    r->current = (fraction){sign ? -f.n : f.n, f.d};
 
     return &r->base;
 }
+
+// vim:set fdm=marker:

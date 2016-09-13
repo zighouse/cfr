@@ -7,5 +7,4 @@ cfr: cfr.c
 	strip $@
 
 testcf: testcf.c cf.c
-	gcc -O2 -o $@ $^
-	strip $@
+	gcc -g -o $@ $^

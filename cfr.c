@@ -354,11 +354,12 @@ static void print_report(int argc, char ** argv, void *data)
     printf("    fraction := %s%lld / %lld\n", sign, ctx->f.n, ctx->f.d);
     printf("        real := %s%e (%s)\n", sign, ctx->x, (ctx->is_float ? "float input" : "evaluated"));
     printf("\nConfiguration & limits:\n");
-    printf("      sizeof integer := %lu\n", sizeof(long long) * 8);
-    printf("         max integer := %lld\n", LLONG_MAX);
-    printf("       max numerator := %lld\n", ctx->limits.max_numerator);
-    printf("     max denominator := %lld\n", ctx->limits.max_denominator);
-    printf("max number of levels := %d\n", ctx->limits.max_index);
+    printf("          sizeof integer := %u\n", (unsigned)sizeof(long long) * 8);
+    printf("             max integer := %lld\n", LLONG_MAX);
+    printf("           max numerator := %lld\n", ctx->limits.max_numerator);
+    printf("         max denominator := %lld\n", ctx->limits.max_denominator);
+    printf("    max number of levels := %d\n", ctx->limits.max_index);
+
 
     ctx->is_welformed = 1;
 
