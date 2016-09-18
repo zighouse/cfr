@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -23,7 +22,8 @@ static long long homography_next_term(cf *c)
 
     homograpy * h = (homograpy*) c;
 
-    while (1) {
+    while (--limit)
+    {
         i1 = h->c ? h->a / h->c : LLONG_MAX;
         i0 = h->d ? h->b / h->d : LLONG_MAX;
 
@@ -46,22 +46,19 @@ static long long homography_next_term(cf *c)
         }
 
         p = cf_next_term(h->x);
-        if (p == LLONG_MAX && cf_is_finished(h->x)) {
+        if (p == LLONG_MAX && cf_is_finished(h->x))
+        {
             h->b = h->a;
             h->d = h->c;
-        } else {
-            long long a = h->a, b = h->b, c = h->c, d = h->d;
-
-            h->a = a * p + b;
-            h->b = a;
-            h->c = c * p + d;
-            h->d = c;
         }
-
-        if (!--limit)
+        else
         {
-            /* loop too many times */
-            break;
+            long long a = h->a, c = h->c;
+
+            h->a = a * p + h->b;
+            h->b = a;
+            h->c = c * p + h->d;
+            h->d = c;
         }
     }
     return LLONG_MAX;
