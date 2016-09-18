@@ -12,11 +12,11 @@
  */
 static cf_class _rational_class;
 
+typedef struct _rational rational;
 struct _rational {
     cf base;
     fraction current;
 };
-typedef struct _rational rational;
 
 static long long rational_next_term(struct _cf *c)
 {
@@ -45,7 +45,7 @@ static long long rational_next_term(struct _cf *c)
     return v;
 }
 
-static int rational_is_finished(struct _cf *c)
+static int rational_is_finished(const cf * const c)
 {
     rational * r = (rational*) c;
     return r->current.d == 0ll;
@@ -57,10 +57,17 @@ static void rational_free(struct _cf *c)
     free(r);
 }
 
+static cf * rational_copy(const cf * const c)
+{
+    rational * r = (rational*) c;
+    return cf_create_from_fraction(r->current);
+}
+
 static cf_class _rational_class = {
     rational_next_term,
     rational_is_finished,
-    rational_free
+    rational_free,
+    rational_copy
 };
 
 cf * cf_create_from_fraction(fraction f)
