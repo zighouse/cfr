@@ -4,23 +4,23 @@
 
 #include "cf.h"
 
-static cf_class _homography_class;
+static cf_class _homographic_class;
 
-typedef struct _homography homograpy;
-struct _homography {
+typedef struct _homographic homographic;
+struct _homographic {
     cf base;
     long long a, b, c, d;
     cf * x;
 };
 
-static long long homography_next_term(cf *c)
+static long long homographic_next_term(cf *c)
 {
     long long i1, i0;
     long long p;
 
     unsigned limit = 10000;
 
-    homograpy * h = (homograpy*) c;
+    homographic * h = (homographic*) c;
 
     while (--limit)
     {
@@ -64,42 +64,42 @@ static long long homography_next_term(cf *c)
     return LLONG_MAX;
 }
 
-static int homography_is_finished(const cf * const c)
+static int homographic_is_finished(const cf * const c)
 {
-    homograpy * h = (homograpy*) c;
+    homographic * h = (homographic*) c;
     return h->c == 0ll && h->d == 0ll;
 }
 
-static void homography_free(cf *c)
+static void homographic_free(cf *c)
 {
-    homograpy * h = (homograpy*) c;
+    homographic * h = (homographic*) c;
     cf_free(h->x);
     free(h);
 }
 
-static cf * homography_copy(const cf * const c)
+static cf * homographic_copy(const cf * const c)
 {
-    homograpy * h = (homograpy*) c;
-    return cf_create_from_homography(h->x, h->a, h->b, h->c, h->d);
+    homographic * h = (homographic*) c;
+    return cf_create_from_homographic(h->x, h->a, h->b, h->c, h->d);
 }
 
-static cf_class _homography_class = {
-    homography_next_term,
-    homography_is_finished,
-    homography_free,
-    homography_copy
+static cf_class _homographic_class = {
+    homographic_next_term,
+    homographic_is_finished,
+    homographic_free,
+    homographic_copy
 };
 
-cf * cf_create_from_homography(const cf * const x,
+cf * cf_create_from_homographic(const cf * const x,
                                long long a, long long b,
                                long long c, long long d)
 {
-    homograpy * h = (homograpy*)malloc(sizeof(homograpy));
+    homographic * h = (homographic*)malloc(sizeof(homographic));
 
     if (!h)
         return NULL;
 
-    h->base.object_class = &_homography_class;
+    h->base.object_class = &_homographic_class;
 
     h->a = a;
     h->b = b;

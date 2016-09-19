@@ -33,8 +33,30 @@ struct _cf {
 #define cf_free(c)         cf_class(c)->free(c)
 #define cf_copy(c)         cf_class(c)->copy(c)
 
+/*
+ * create a continued fraction from rational:
+ *      n
+ * f = ---
+ *      d
+ */
 cf * cf_create_from_fraction(fraction f);
-cf * cf_create_from_homography(const cf * const x,
-                               long long a, long long b,
-                               long long c, long long d);
+
+/*
+ * create a continued fraction from homograhic function:
+ *     ax + b
+ *     ------
+ *     cx + d
+ */
+cf * cf_create_from_homographic(const cf * const x,
+                                long long a, long long b,
+                                long long c, long long d);
+/*
+ * create a continued fraction from bihomograhic function:
+ *     axy + bx + cy + d
+ *     -----------------
+ *     exy + fx + gy + h
+ */
+cf * cf_create_from_bihomographic(const cf * const x, const cf * const y,
+                                  long long a, long long b, long long c, long long d,
+                                  long long e, long long f, long long g, long long h);
 #endif // __CF_H__
