@@ -61,6 +61,11 @@ static int cfr(fraction f, settings *limits, cfrcb print, void * data)
 
         ai = f.n / f.d;
         mod = f.n % f.d;
+        if (ai < 0)
+        {
+            --ai;
+            mod += f.d;
+        }
 
         t.n = m[0] * ai + m[2];
         t.d = m[1] * ai + m[3];
@@ -104,7 +109,8 @@ static void help(char * name)
                     "    -l, --list              list iteration process\n"
                     "\n"
                     "    -h, --help              display this help\n"
-                    "    --version               output version information\n");
+                    "    --version               output version information\n"
+                    "    --                      following minus number not parsed as option(s)\n");
 
     fprintf(stderr, "\nExample:\n");
     fprintf(stderr, "    %s 144 89\n", name);
@@ -114,6 +120,7 @@ static void help(char * name)
     fprintf(stderr, "    %s -s -m 200 3.1419265\n", name);
     fprintf(stderr, "    %s -c -p -n 18 2.71828182845964\n", name);
     fprintf(stderr, "    %s -l 1920 1080\n", name);
+    fprintf(stderr, "    %s -cp -- -16 9\n", name);
     fprintf(stderr, "\nReport bugs to: http://github.com/zighouse/cfr/issues .\n");
 }
 
@@ -129,7 +136,7 @@ struct context {
     fraction f;
     double x;
     settings limits;
-    int sign;
+    //int sign;
     int is_float;
     int is_welformed;
     int is_complete;
@@ -146,19 +153,16 @@ static void cfrcb_print_verb(fraction f, long long ai, long long gcd, void * dat
     {
         if (ctx->is_float)
         { 
-            printf("%s%lld/%lld %lld err=0\n",
-                   (ctx->sign ? "- " : ""), f.n, f.d, ai);
+            printf("%lld/%lld %lld err=0\n", f.n, f.d, ai);
         }
         else
         {
-            printf("%s%lld/%lld %lld gcd=%lld\n",
-                   (ctx->sign ? "- " : ""), f.n, f.d, ai, gcd);
+            printf("%lld/%lld %lld gcd=%lld\n", f.n, f.d, ai, gcd);
         }
     }
     else
     {
-        printf("%s%lld/%lld %lld err=%e\n",
-               (ctx->sign ? "- " : ""), f.n, f.d,
+        printf("%lld/%lld %lld err=%g\n", f.n, f.d,
                ai, ctx->x - (double)f.n/(double)f.d);
     }
     ++ctx->index;
@@ -186,7 +190,7 @@ static void print_welformed(void * data)
     struct context * ctx = (struct context*) data;
     struct cfstep * head;
     int field_len[3];
-    char buf[100], *sign;
+    char buf[100];
 
     if (!ctx->steps)
     {
@@ -213,7 +217,6 @@ static void print_welformed(void * data)
     ctx->steps = head;
 
     // print welformed list
-    sign = (char*)(ctx->sign ? " - " : " ");
     for (head = ctx->steps; head; head = head->next)
     {
         if (head->gcd)
@@ -232,10 +235,10 @@ static void print_welformed(void * data)
             snprintf(buf, sizeof buf, "err = %e",
                      ctx->x - (double)head->simp.n/(double)head->simp.d);
         }
-        printf("%s%*lld / %-*lld  %*lld  %s\n",
-               sign, field_len[0], head->simp.n, 
-                     field_len[1], head->simp.d,
-                     field_len[2], head->ai,
+        printf("%*lld / %-*lld  %*lld  %s\n",
+               field_len[0], head->simp.n, 
+               field_len[1], head->simp.d,
+               field_len[2], head->ai,
                buf);
     }
 }
@@ -327,32 +330,21 @@ static void cfrcb_accept_simp(fraction f, long long ai, long long gcd, void * da
 static void cfrcb_print_cont(fraction f, long long ai, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
-    if (ctx->index)
-    {
-        printf(" %lld", ai);
-    }
-    else
-    {
-        printf("%s%lld", ctx->sign ? "(-) " : "", ai);
-    }
-    ++ctx->index;
+    printf(ctx->index++ ? " %lld" : "%lld", ai);
 }
 
 static void print_report(int argc, char ** argv, void *data)
 {
     struct context *ctx = (struct context*) data;
-    const char * sign;
 
     if (!ctx->steps)
     {
         return;
     }
 
-    sign = ctx->sign ? "- " : "";
-
     printf("Input:\n");
-    printf("    fraction := %s%lld / %lld\n", sign, ctx->f.n, ctx->f.d);
-    printf("        real := %s%e (%s)\n", sign, ctx->x, (ctx->is_float ? "float input" : "evaluated"));
+    printf("    fraction := %lld / %lld\n", ctx->f.n, ctx->f.d);
+    printf("        real := %e (%s)\n", ctx->x, (ctx->is_float ? "float input" : "evaluated"));
     printf("\nConfiguration & limits:\n");
     printf("          sizeof integer := %u\n", (unsigned)sizeof(long long) * 8);
     printf("             max integer := %lld\n", LLONG_MAX);
@@ -373,7 +365,7 @@ static void print_report(int argc, char ** argv, void *data)
     {
         printf("    GCD is not available.\n");
     }
-    printf("    Simple fraction = %s%lld / %lld\n", sign, ctx->steps->simp.n, ctx->steps->simp.d);
+    printf("    Simple fraction = %lld / %lld\n", ctx->steps->simp.n, ctx->steps->simp.d);
 
     printf("\nContinued fraction:\n");
     print_welformed_cont(ctx);
@@ -440,12 +432,10 @@ bail:
 
 static int parse_options(int argc, char ** argv, struct context *ctx)
 {
-    int c;
-    int digit_optind = 0;
+    int c, sign;
 
     // parse named options
     while (1) {
-        int this_option_optind = optind ? optind : 1;
         int option_index = 0;
         static struct option long_options[] = {
             {"maxden",    required_argument, 0, 'm'},
@@ -565,11 +555,11 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
     if (ctx->f.n < 0)
     {
         ctx->f.n = -ctx->f.n;
-        ctx->sign = 1;
+        sign = 1;
     }
     else
     {
-        ctx->sign = 0;
+        sign = 0;
     }
     ctx->is_float = ctx->f.d > 1;
 
@@ -606,7 +596,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         if (f.n < 0)
         {
             f.n = -f.n;
-            ctx->sign = !ctx->sign;
+            sign = !sign;
         }
         if (ctx->f.d > f.d)
         {
@@ -616,6 +606,10 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         {
             ctx->f.n = ctx->f.n * f.d / ctx->f.d;
             ctx->f.d = f.n;
+        }
+        if (sign)
+        {
+            ctx->f.n = -ctx->f.n;
         }
     }
     return 0;
@@ -662,11 +656,11 @@ int main(int argc, char ** argv)
             f = ctx.steps->simp;
             if (ctx.is_welformed)
             {
-                printf("%s%lld / %lld\n", ctx.sign ? "- " : "", f.n, f.d);
+                printf("%lld / %lld\n", f.n, f.d);
             }
             else
             {
-                printf("%s%lld/%lld\n", ctx.sign ? "-" : "", f.n, f.d);
+                printf("%lld/%lld\n", f.n, f.d);
             }
         }
         break;
