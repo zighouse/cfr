@@ -146,7 +146,7 @@ static long long bihomographic_next_term(cf *c)
             }
             else
             {
-                int a = h->a, c = h->c, e = h->e, g = h->g;
+                long long a = h->a, c = h->c, e = h->e, g = h->g;
 
                 h->a = a*p + h->b;
                 h->b = a;
