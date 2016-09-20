@@ -76,5 +76,6 @@ int cf_simplifier_is_finished(const cf_simplifier * const s)
 
 void cf_simplifier_free(cf_simplifier * s)
 {
+    cf_free(s->c);
     free(s);
 }
