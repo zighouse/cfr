@@ -59,4 +59,27 @@ cf * cf_create_from_homographic(const cf * const x,
 cf * cf_create_from_bihomographic(const cf * const x, const cf * const y,
                                   long long a, long long b, long long c, long long d,
                                   long long e, long long f, long long g, long long h);
+
+typedef struct _error_range error_range;
+struct _error_range {
+    int type; // bit-0: includes low, bit-1: includes up
+    fraction low_bind;
+    fraction up_bind;
+};
+
+typedef struct _cf_simplifier cf_simplifier;
+typedef struct _cf_simplifier_class cf_simplifier_class;
+struct _cf_simplifier {
+    cf *c;
+    long long m[4];
+    long long ai[2];
+    fraction s[2];
+    int idx, finished;
+};
+
+cf_simplifier * cf_simplifier_create(const cf * const c);
+int cf_simplifier_next(cf_simplifier * s, long long *ai, fraction *f, error_range * e);
+int cf_simplifier_is_finished(const cf_simplifier * const s);
+void cf_simplifier_free(cf_simplifier * s);
+
 #endif // __CF_H__

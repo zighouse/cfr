@@ -170,6 +170,71 @@ static void test_case8(void)
     cf_free(h);
 }
 
+static void test_case9(void)
+{
+    cf * c;
+    long long m[4];
+
+    printf("case9: 16 / 9: \n");
+
+    m[0] = m[3] = 1ll;
+    m[2] = m[1] = 0ll;
+
+    c = cf_create_from_fraction((fraction){16, 9});
+    while (!cf_is_finished(c))
+    {
+        long long ai;
+        fraction s;
+
+        ai = cf_next_term(c);
+        s.n = m[0] * ai + m[2];
+        s.d = m[1] * ai + m[3];
+
+        m[2] = m[0];
+        m[3] = m[1];
+
+        m[0] = s.n;
+        m[1] = s.d;
+        printf("       %lld, %lld / %lld\n", ai, s.n, s.d);
+    }
+    cf_free(c);
+}
+
+static void test_case10(void)
+{
+    cf *c;
+    cf_simplifier *s;
+
+    printf("case10: x = 16 / 9: \n");
+    printf("\tcf\tapprox\terror = |x-simple|\n");
+
+    c = cf_create_from_fraction((fraction){16, 9});
+    s = cf_simplifier_create(c);
+
+    while (!cf_simplifier_is_finished(s))
+    {
+        error_range e;
+        fraction f;
+        long long n;
+        if (cf_simplifier_next(s, &n, &f, &e))
+        {
+            if (e.up_bind.n == 0)
+            {
+                printf("\t%lld\t%lld/%lld\t0\n", n, f.n, f.d);
+            }
+            else
+            {
+                printf("\t%lld\t%lld/%lld\t(%lld/%lld,%lld/%lld)\n", n, f.n, f.d,
+                       e.low_bind.n, e.low_bind.d,
+                       e.up_bind.n, e.up_bind.d);
+            }
+        }
+    }
+
+    cf_free(c);
+    cf_simplifier_free(s);
+}
+
 int main(void)
 {
     test_case1();
@@ -180,5 +245,7 @@ int main(void)
     test_case6();
     test_case7();
     test_case8();
+    test_case9();
+    test_case10();
     return 0;
 }
