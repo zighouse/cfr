@@ -34,6 +34,11 @@ struct _cf {
 #define cf_copy(c)         cf_class(c)->copy(c)
 
 /*
+ * create a continued fraction from a serial of numbers.
+ */
+cf * cf_create_from_numbers(const long long * const numbers, unsigned int size);
+
+/*
  * create a continued fraction from rational:
  *      n
  * f = ---

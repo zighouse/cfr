@@ -204,11 +204,13 @@ static void test_case10(void)
 {
     cf *c;
     cf_simplifier *s;
+    long long numbers[4] = {1, 1, 3, 2};
 
-    printf("case10: x = 16 / 9: \n");
+    printf("case10: x = 1, 1, 3, 2: \n");
     printf("\tcf\tapprox\terror = |x-simple|\n");
 
-    c = cf_create_from_fraction((fraction){16, 9});
+    //c = cf_create_from_fraction((fraction){16, 9});
+    c = cf_create_from_numbers(numbers, sizeof(numbers)/sizeof(numbers[0]));
     s = cf_simplifier_create(c);
 
     while (!cf_simplifier_is_finished(s))
