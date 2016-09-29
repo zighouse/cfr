@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "cf.h"
+#include "gcf.h"
 
 static void test_case1(void)
 {
@@ -237,6 +238,30 @@ static void test_case10(void)
     cf_simplifier_free(s);
 }
 
+static void test_case11(void)
+{
+    gcf *g;
+    number_pair pairs[6] = {
+        {  0, 3},
+        {1*1, 6},
+        {3*3, 6},
+        {5*5, 6},
+        {7*7, 6},
+        {9*9, 6}
+    };
+
+    printf("case11: gcf(pi): \n");
+
+    g = gcf_create_from_pairs(pairs, sizeof(pairs)/sizeof(pairs[0]));
+    while (!cf_is_finished(g))
+    {
+        number_pair pn = cf_next_term(g);
+        printf("%lld, %lld\n", pn.a, pn.b);
+    }
+
+    cf_free(g);
+}
+
 int main(void)
 {
     test_case1();
@@ -249,5 +274,6 @@ int main(void)
     test_case8();
     test_case9();
     test_case10();
+    test_case11();
     return 0;
 }
