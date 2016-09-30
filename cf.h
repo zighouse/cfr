@@ -65,6 +65,60 @@ cf * cf_create_from_bihomographic(const cf * const x, const cf * const y,
                                   long long a, long long b, long long c, long long d,
                                   long long e, long long f, long long g, long long h);
 
+/*
+ * generalized continued fraction
+ *
+ *                     a1
+ * gcf = b0 + -----------------------
+ *                        a2
+ *            b1 + ------------------
+ *                           a3
+ *                 b2 + -------------
+ *                              a4
+ *                      b3 + --------
+ *                           b4 + ...
+ *
+ * number_pair-0: T.B.D.: 0, b0 ? OR 1, b0 ?
+ * number_pair-1: a1, b1
+ * number_pair-2: a2, b2
+ * number_pair-3: a3, b3
+ * number_pair-4: a4, b4
+ * number_pair-5:  1, oo (truncated)
+ */
+typedef struct _gcf gcf;
+typedef struct _gcf_class gcf_class;
+typedef struct _number_pair number_pair;
+
+struct _number_pair {
+    long long a;
+    long long b;
+};
+
+struct _gcf_class {
+    number_pair (*next_term)(gcf *g);
+    int (*is_finished)(const gcf * const g);
+    void (*free)(gcf *g);
+    gcf * (*copy)(const gcf * const g);
+};
+
+struct _gcf {
+    gcf_class * object_class;
+};
+
+gcf * gcf_create_from_pairs(const number_pair * const arr, unsigned int size);
+
+/*
+ * create a continued fraction from homograhic function by input generalized
+ * continued fraction:
+ *
+ *     ax + b
+ *     ------
+ *     cx + d
+ */
+cf * cf_create_from_ghomo(const gcf * const x,
+                          long long a, long long b,
+                          long long c, long long d);
+
 typedef struct _error_range error_range;
 struct _error_range {
     int type; // bit-0: includes low, bit-1: includes up
