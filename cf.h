@@ -78,7 +78,7 @@ cf * cf_create_from_bihomographic(const cf * const x, const cf * const y,
  *                      b3 + --------
  *                           b4 + ...
  *
- * number_pair-0: T.B.D.: 0, b0 ? OR 1, b0 ?
+ * number_pair-0:  1, b0
  * number_pair-1: a1, b1
  * number_pair-2: a2, b2
  * number_pair-3: a3, b3
@@ -106,6 +106,7 @@ struct _gcf {
 };
 
 gcf * gcf_create_from_pairs(const number_pair * const arr, unsigned int size);
+gcf * gcf_create_pi(void);
 
 /*
  * create a continued fraction from homograhic function by input generalized

@@ -241,6 +241,20 @@ static void test_case11(void)
 {
     cf *c;
     gcf *g;
+#if 1
+    /*
+     *                    1
+     * pi = 3 + ----------------------
+     *                      9
+     *          6 + ------------------
+     *                        25
+     *               6 + -------------
+     *                          49
+     *                   6 + ---------
+     *                             81
+     *                       6 + -----
+     *                            ...
+     */
     number_pair pairs[11] = {
         {  1, 3},
         {1*1, 6},
@@ -254,6 +268,33 @@ static void test_case11(void)
         {17*17, 6},
         {19*19, 6}
     };
+#else
+    /*
+     *                    4
+     * pi = 0 + ----------------------
+     *                      1
+     *          1 + ------------------
+     *                         4
+     *               3 + -------------
+     *                           9
+     *                   5 + ---------
+     *                             16
+     *                       7 + -----
+     *                            ...
+     */
+    number_pair pairs[] = {
+        {1, 0},
+        {4, 1},
+        {1, 3},
+        {4, 5},
+        {9, 7},
+        {16, 9},
+        {25, 11},
+        {36, 13},
+        {49, 15},
+        {64, 17},
+    };
+#endif
 
     printf("case11: gcf(pi): \n");
 
@@ -275,6 +316,32 @@ static void test_case11(void)
     cf_free(c);
 }
 
+static void test_case12(void)
+{
+    int limit, i;
+    gcf *g = gcf_create_pi();
+    cf * c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+
+    limit = 10;
+    printf("case12: gcf(pi): \n");
+    for (i = 0; i < limit; ++i)
+    {
+        number_pair pn = cf_next_term(g);
+        printf("%lld, %lld\n", pn.a, pn.b);
+    }
+    printf("..., ...\n");
+
+    limit = 100;
+    printf("cf(pi): ");
+    for (i = 0; i < limit; ++i)
+    {
+        printf(" %lld", cf_next_term(c));
+    }
+    printf(" ...\n");
+
+    cf_free(g);
+    cf_free(c);
+}
 int main(void)
 {
     test_case1();
@@ -288,5 +355,6 @@ int main(void)
     test_case9();
     test_case10();
     test_case11();
+    test_case12();
     return 0;
 }
