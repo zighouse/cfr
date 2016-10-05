@@ -173,6 +173,7 @@ static void bihomographic_free(cf *c)
 {
     bihomographic * h = (bihomographic*) c;
     cf_free(h->x);
+    cf_free(h->y);
     free(h);
 }
 
