@@ -36,7 +36,8 @@ struct _cf {
 /*
  * create a continued fraction from a serial of numbers.
  */
-cf * cf_create_from_numbers(const long long * const numbers, unsigned int size);
+cf * cf_create_from_numbers(const long long * const numbers,
+                            unsigned int size);
 
 /*
  * create a continued fraction from rational:
@@ -61,9 +62,12 @@ cf * cf_create_from_homographic(const cf * const x,
  *     -----------------
  *     exy + fx + gy + h
  */
-cf * cf_create_from_bihomographic(const cf * const x, const cf * const y,
-                                  long long a, long long b, long long c, long long d,
-                                  long long e, long long f, long long g, long long h);
+cf * cf_create_from_bihomographic(const cf * const x,
+                                  const cf * const y,
+                                  long long a, long long b,
+                                  long long c, long long d,
+                                  long long e, long long f,
+                                  long long g, long long h);
 
 /*
  * generalized continued fraction
@@ -105,12 +109,13 @@ struct _gcf {
     gcf_class * object_class;
 };
 
-gcf * gcf_create_from_pairs(const number_pair * const arr, unsigned int size);
+gcf * gcf_create_from_pairs(const number_pair * const arr,
+                            unsigned int size);
 gcf * gcf_create_pi(void);
 
 /*
- * create a continued fraction from homograhic function by input generalized
- * continued fraction:
+ * create a continued fraction from homograhic function by input
+ * generalized continued fraction:
  *
  *     ax + b
  *     ------
@@ -127,19 +132,24 @@ struct _error_range {
     fraction up_bind;
 };
 
+/*
+ * simplify continued fraction into a series of approximation in
+ * fraction.
+ */
 typedef struct _cf_simplifier cf_simplifier;
-typedef struct _cf_simplifier_class cf_simplifier_class;
-struct _cf_simplifier {
-    cf *c;
-    long long m[4];
-    long long ai[2];
-    fraction s[2];
-    int idx, finished;
-};
-
 cf_simplifier * cf_simplifier_create(const cf * const c);
-int cf_simplifier_next(cf_simplifier * s, long long *ai, fraction *f, error_range * e);
+int cf_simplifier_next(cf_simplifier * s,
+                       long long *ai, fraction *f, error_range * e);
 int cf_simplifier_is_finished(const cf_simplifier * const s);
 void cf_simplifier_free(cf_simplifier * s);
+
+/*
+ * generates decimal digits from a continued fraction.
+ */
+typedef struct _cf_decimal_gen cf_decimal_gen;
+cf_decimal_gen * cf_decimal_gen_create(const cf * const c);
+void cf_decimal_gen_free(cf_decimal_gen * g);
+int cf_decimal_gen_next(cf_decimal_gen *g);
+int cf_decimal_gen_is_finished(const cf_decimal_gen * const g);
 
 #endif // __CF_H__

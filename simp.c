@@ -4,6 +4,14 @@
 
 #include "cf.h"
 
+struct _cf_simplifier {
+    cf *c;
+    long long m[4];
+    long long ai[2];
+    fraction s[2];
+    int idx, finished;
+};
+
 cf_simplifier * cf_simplifier_create(const cf * const c)
 {
     cf_simplifier * s = (cf_simplifier*) malloc(sizeof(cf_simplifier));

@@ -3,6 +3,7 @@
 #include <limits.h>
 
 #include "cf.h"
+#include "common.h"
 
 static gcf_class _pnumbers_class;
 
@@ -64,40 +65,6 @@ gcf * gcf_create_from_pairs(const number_pair * const arr, unsigned int size)
     return &n->base;
 }
 
-#include <gmp.h>
-
-static
-unsigned long long mpz_get_ull(mpz_t z)
-{
-    unsigned long long result = 0;
-    mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
-    return result;
-}
-
-static
-void mpz_set_ull (mpz_t z, unsigned long long ull)
-{
-    mpz_import(z, 1, -1, sizeof ull, 0, 0, &ull);
-}
-
-static
-void mpz_set_ll(mpz_t z, long long sll)
-{
-    mpz_import(z, 1, -1, sizeof sll, 0, 0, &sll);
-    if (sll < 0)
-    {
-        z->_mp_size = -z->_mp_size;
-    }
-}
-
-static
-long long mpz_get_ll(mpz_t z)
-{
-    long long result = 0;
-    mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
-    return result;
-}
-
 static cf_class _ghomo_class;
 
 typedef struct _ghomo ghomo;
@@ -109,7 +76,7 @@ struct _ghomo {
 
 static long long ghomo_next_term(cf *g)
 {
-    unsigned limit = 10000;
+    unsigned int limit = UINT_MAX;
     mpz_t i0, i1, a, b, c, t1, t2, t3, t4;
     long long result = LLONG_MAX;
     number_pair p;

@@ -342,6 +342,34 @@ static void test_case12(void)
     cf_free(g);
     cf_free(c);
 }
+
+static void test_case13(void)
+{
+    int limit, i;
+    gcf *g = gcf_create_pi();
+    cf  *c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+    cf_decimal_gen * gen = cf_decimal_gen_create(c);
+
+    printf("case13: pi = ");
+    limit = 100;
+    for (i = 0; i < limit; ++i)
+    {
+        int x = cf_decimal_gen_next(gen);
+        if (i == 0)
+        {
+            printf("%d.", x);
+        }
+        else
+        {
+            printf("%d", x);
+        }
+    }
+    printf("...\n");
+    cf_free(g);
+    cf_free(c);
+    cf_decimal_gen_free(gen);
+}
+
 int main(void)
 {
     test_case1();
@@ -356,5 +384,6 @@ int main(void)
     test_case10();
     test_case11();
     test_case12();
+    test_case13();
     return 0;
 }
