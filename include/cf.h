@@ -7,6 +7,11 @@
 #ifndef __CF_H__
 #define __CF_H__
 
+#if defined (__cplusplus)
+extern "C" {
+#endif
+
+
 /*
  * Fraction in long long integers.
  *
@@ -520,6 +525,11 @@ struct _cf_approx {
  * Free by `cf_free()' helper macro.
  */
 cf_approx * cf_approx_create(const cf * const c);
+
+
+#if defined (__cplusplus)
+}
+#endif
 
 #endif // __CF_H__
 /* vim:set tw=72: */
