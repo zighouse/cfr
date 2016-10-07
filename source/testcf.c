@@ -374,7 +374,6 @@ static void test_case13(void)
 static void test_case14(void)
 {
     double pi = 3.141592653589793;
-    int limit = 10000;
     cf  *c;
     printf("case14: pi = %.15f\n", pi);
 
@@ -383,8 +382,6 @@ static void test_case14(void)
     while (!cf_is_finished(c))
     {
         printf(" %lld", cf_next_term(c));
-        if (--limit == 0)
-            break;
     }
     printf("\n");
     cf_free(c);
