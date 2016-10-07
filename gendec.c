@@ -5,18 +5,21 @@
 #include "cf.h"
 #include "common.h"
 
-typedef struct _cf_decimal_gen cf_decimal_gen;
-struct _cf_decimal_gen {
+typedef struct _cf_gen_dec cf_gen_dec;
+struct _cf_gen_dec {
+    cf_gen base;
     mpz_t a, b, c, d;
     cf * x;
 };
 
-int cf_decimal_gen_next(cf_decimal_gen *g)
+static
+int cf_gen_dec_next_term(cf_gen *gen)
 {
     unsigned int limit = UINT_MAX;
     mpz_t i0, i1, a, b, c, t1, t2, t3, t4;
     long long p;
     int result = INT_MAX;
+    cf_gen_dec * g = (cf_gen_dec*)gen;
 
     mpz_inits(i0, i1, a, b, c, t1, t2, t3, t4, NULL);
     while (--limit)
@@ -93,22 +96,40 @@ EXIT_FUNC:
     return result;
 }
 
-int cf_decimal_gen_is_finished(const cf_decimal_gen * const g)
+static
+int cf_gen_dec_is_finished(const cf_gen * const gen)
 {
+    const cf_gen_dec * const g = (const cf_gen_dec * const)gen;
     return mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0;
 }
 
-void cf_decimal_gen_free(cf_decimal_gen *g)
+static
+void cf_gen_dec_free(cf_gen *gen)
 {
+    cf_gen_dec * g = (cf_gen_dec*)gen;
     cf_free(g->x);
     mpz_clears(g->a, g->b, g->c, g->d, NULL);
     free(g);
 }
 
-cf_decimal_gen * cf_decimal_gen_create(const cf * const x)
+static
+cf_gen * cf_gen_dec_copy(const cf_gen * const gen)
 {
-    cf_decimal_gen * g =
-        (cf_decimal_gen*)malloc(sizeof(cf_decimal_gen));
+    const cf_gen_dec * const g = (const cf_gen_dec * const)gen;
+    return cf_gen_create_dec(g->x);
+}
+
+static cf_gen_class _cf_gen_dec_class = {
+    cf_gen_dec_next_term,
+    cf_gen_dec_is_finished,
+    cf_gen_dec_free,
+    cf_gen_dec_copy
+};
+
+cf_gen * cf_gen_create_dec(const cf * const x)
+{
+    cf_gen_dec * g =
+        (cf_gen_dec*)malloc(sizeof(cf_gen_dec));
 
     if (!g)
         return NULL;
@@ -118,5 +139,6 @@ cf_decimal_gen * cf_decimal_gen_create(const cf * const x)
     mpz_init_set_ui(g->c, 0u);
     mpz_init_set_ui(g->d, 1u);
     g->x = cf_copy(x);
-    return g;
+    g->base.object_class = &_cf_gen_dec_class;
+    return &g->base;
 }

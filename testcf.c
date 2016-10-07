@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <limits.h>
 #include "cf.h"
 
 static void test_case1(void)
@@ -125,7 +126,8 @@ static void test_case7(void)
 
     printf("case7: x =-16 / 9, y = 127 / 50 \n");
     printf("           3xy + 2x +  y + 0\n");
-    printf("       h = ----------------- = %f = ", (3*fx*fy+2*fx+fy)/(-fx*fy-2*fx-3*fy+4));
+    printf("       h = ----------------- = %f = ",
+           (3*fx*fy+2*fx+fy)/(-fx*fy-2*fx-3*fy+4));
 
     x = cf_create_from_fraction((fraction){-16, 9});
     y = cf_create_from_fraction((fraction){127, 50});
@@ -152,7 +154,8 @@ static void test_case8(void)
 
     printf("case8: x =-16 / 9, y = 127 / 50 \n");
     printf("           3xy + 2x +  y + 4\n");
-    printf("       h = ----------------- = %f = ", (3*fx*fy+2*fx+fy+4)/(fx*fy+2*fx+3*fy));
+    printf("       h = ----------------- = %f = ",
+           (3*fx*fy+2*fx+fy+4)/(fx*fy+2*fx+3*fy));
   
     x = cf_create_from_fraction((fraction){-16, 9});
     y = cf_create_from_fraction((fraction){127, 50});
@@ -203,38 +206,36 @@ static void test_case9(void)
 static void test_case10(void)
 {
     cf *c;
-    cf_simplifier *s;
+    cf_approx *s;
     long long numbers[4] = {1, 1, 3, 2};
 
     printf("case10: x = 1, 1, 3, 2: \n");
     printf("\tcf\tapprox\terror = |x-simple|\n");
 
     //c = cf_create_from_fraction((fraction){16, 9});
-    c = cf_create_from_numbers(numbers, sizeof(numbers)/sizeof(numbers[0]));
-    s = cf_simplifier_create(c);
+    c = cf_create_from_terms(numbers,
+                             sizeof(numbers)/sizeof(numbers[0]));
+    s = cf_approx_create(c);
 
-    while (!cf_simplifier_is_finished(s))
+    while (!cf_is_finished(s))
     {
-        error_range e;
-        fraction f;
-        long long n;
-        if (cf_simplifier_next(s, &n, &f, &e))
+        cf_approx_term term = cf_next_term(s);
+        if (term.lower_error == LLONG_MAX)
         {
-            if (e.up_bind.n == 0)
-            {
-                printf("\t%lld\t%lld/%lld\t0\n", n, f.n, f.d);
-            }
-            else
-            {
-                printf("\t%lld\t%lld/%lld\t(%lld/%lld,%lld/%lld)\n", n, f.n, f.d,
-                       e.low_bind.n, e.low_bind.d,
-                       e.up_bind.n, e.up_bind.d);
-            }
+            printf("\t%lld\t%lld/%lld\t0\n",
+                   term.ai, term.rational.n, term.rational.d);
+        }
+        else
+        {
+            printf("\t%lld\t%lld/%lld\t(%lld/%lld,%lld/%lld)\n",
+                   term.ai, term.rational.n, term.rational.d,
+                   1ll, term.lower_error,
+                   1ll, term.upper_error);
         }
     }
 
     cf_free(c);
-    cf_simplifier_free(s);
+    cf_free(s);
 }
 
 static void test_case11(void)
@@ -255,7 +256,7 @@ static void test_case11(void)
      *                       6 + -----
      *                            ...
      */
-    number_pair pairs[11] = {
+    number_pair pairs[] = {
         {  1, 3},
         {1*1, 6},
         {3*3, 6},
@@ -266,7 +267,7 @@ static void test_case11(void)
         {13*13, 6},
         {15*15, 6},
         {17*17, 6},
-        {19*19, 6}
+        {19*19, 6},
     };
 #else
     /*
@@ -319,7 +320,7 @@ static void test_case11(void)
 static void test_case12(void)
 {
     int limit, i;
-    gcf *g = gcf_create_pi();
+    gcf *g = gcf_create_from_pi();
     cf * c = cf_create_from_ghomo(g, 1, 0, 0, 1);
 
     limit = 10;
@@ -346,15 +347,15 @@ static void test_case12(void)
 static void test_case13(void)
 {
     int limit, i;
-    gcf *g = gcf_create_pi();
+    gcf *g = gcf_create_from_pi();
     cf  *c = cf_create_from_ghomo(g, 1, 0, 0, 1);
-    cf_decimal_gen * gen = cf_decimal_gen_create(c);
+    cf_gen * gen = cf_gen_create_dec(c);
 
     printf("case13: pi = ");
     limit = 100;
     for (i = 0; i < limit; ++i)
     {
-        int x = cf_decimal_gen_next(gen);
+        int x = cf_next_term(gen);
         if (i == 0)
         {
             printf("%d.", x);
@@ -367,7 +368,7 @@ static void test_case13(void)
     printf("...\n");
     cf_free(g);
     cf_free(c);
-    cf_decimal_gen_free(gen);
+    cf_free(gen);
 }
 
 int main(void)

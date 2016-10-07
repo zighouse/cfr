@@ -34,7 +34,7 @@ static void numbers_free(cf *c)
 static cf * numbers_copy(const cf * const c)
 {
     numbers * n = (numbers*)c;
-    return cf_create_from_numbers(n->arr + n->idx, n->size - n->idx);
+    return cf_create_from_terms(n->arr + n->idx, n->size - n->idx);
 }
 
 static cf_class _numbers_class = {
@@ -44,7 +44,7 @@ static cf_class _numbers_class = {
     numbers_copy
 };
 
-cf * cf_create_from_numbers(const long long * const arr, unsigned int size)
+cf * cf_create_from_terms(const long long * const arr, unsigned int size)
 {
     numbers * n;
 

@@ -288,7 +288,7 @@ static void gcf_pi_free(gcf *g)
 
 static gcf * gcf_pi_copy(const gcf * const g)
 {
-    return gcf_create_pi();
+    return gcf_create_from_pi();
 }
 
 static gcf_class _gcf_pi_class = {
@@ -298,7 +298,7 @@ static gcf_class _gcf_pi_class = {
     gcf_pi_copy
 };
 
-gcf * gcf_create_pi(void)
+gcf * gcf_create_from_pi(void)
 {
     gcf_pi * pi = (gcf_pi*)malloc(sizeof(gcf_pi));
     if (!pi)
