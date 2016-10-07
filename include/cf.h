@@ -174,6 +174,13 @@ cf * cf_create_from_terms(const long long * const terms,
 cf * cf_create_from_fraction(fraction f);
 
 /*
+ * Create a continued fraction from a float point number.
+ *
+ * Free by `cf_free()' helper macro.
+ */
+cf * cf_create_from_float(double d);
+
+/*
  * Create a continued fraction from homograhic function of another
  * continued fraction.
  *

@@ -371,6 +371,25 @@ static void test_case13(void)
     cf_free(gen);
 }
 
+static void test_case14(void)
+{
+    double pi = 3.141592653589793;
+    int limit = 10000;
+    cf  *c;
+    printf("case14: pi = %.15f\n", pi);
+
+    printf("cf(pi):");
+    c = cf_create_from_float(pi);
+    while (!cf_is_finished(c))
+    {
+        printf(" %lld", cf_next_term(c));
+        if (--limit == 0)
+            break;
+    }
+    printf("\n");
+    cf_free(c);
+}
+
 int main(void)
 {
     test_case1();
@@ -386,5 +405,6 @@ int main(void)
     test_case11();
     test_case12();
     test_case13();
+    test_case14();
     return 0;
 }

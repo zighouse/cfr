@@ -16,6 +16,7 @@ OBJS += $(OBJ_DIR)/numbs.o
 OBJS += $(OBJ_DIR)/gmp.o
 OBJS += $(OBJ_DIR)/gcf.o
 OBJS += $(OBJ_DIR)/gendec.o
+OBJS += $(OBJ_DIR)/float.o
 
 CFLAGS += -Wall -Iinclude
 LDFLAGS += -lgmp

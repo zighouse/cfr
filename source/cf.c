@@ -97,5 +97,3 @@ cf * cf_create_from_fraction(fraction f)
 
     return &r->base;
 }
-
-// vim:set fdm=marker:
