@@ -54,9 +54,9 @@ cf_approx_term cf_approx_next_term(cf_approx * approx)
 }
 
 static
-int cf_approx_is_finished(const cf_approx * const approx)
+int cf_approx_is_finished(const cf_approx * approx)
 {
-    return ((const cf_approx_priv * const)approx)->finished;
+    return ((const cf_approx_priv *)approx)->finished;
 }
 
 static
@@ -67,14 +67,14 @@ void cf_approx_free(cf_approx * s)
 }
 
 static
-cf_approx * cf_approx_copy(const cf_approx * const approx)
+cf_approx * cf_approx_copy(const cf_approx * approx)
 {
     cf_approx_priv * s = (cf_approx_priv*) malloc(sizeof(cf_approx_priv));
     if (!s)
         return NULL;
 
     memcpy(s, approx, sizeof(cf_approx_priv));
-    s->c = cf_copy(((const cf_approx_priv * const)approx)->c);
+    s->c = cf_copy(((const cf_approx_priv *)approx)->c);
     return &s->base;
 }
 
@@ -85,7 +85,7 @@ static cf_approx_class _cf_approx_priv_class = {
     cf_approx_copy
 };
 
-cf_approx * cf_approx_create(const cf * const c)
+cf_approx * cf_approx_create(const cf * c)
 {
     cf_approx_priv * s = (cf_approx_priv*) malloc(sizeof(cf_approx_priv));
     if (!s)

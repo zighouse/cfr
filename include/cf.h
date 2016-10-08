@@ -82,7 +82,7 @@ struct _cf_class {
      * Check whether the continued fraction is finished and no more
      * terms can be retrieved from.
      */
-    int (*is_finished)(const cf * const c);
+    int (*is_finished)(const cf * c);
 
     /*
      * Free a continued fraction.
@@ -99,7 +99,7 @@ struct _cf_class {
      * Returns a continued fraction of the same status with c, and
      * should be freed by `void (*free)(cf *c)'.
      */
-    cf * (*copy)(const cf * const c);
+    cf * (*copy)(const cf * c);
 };
 
 struct _cf {
@@ -158,7 +158,7 @@ struct _cf {
  *
  * Free by `cf_free()' helper macro.
  */
-cf * cf_create_from_terms(const long long * const terms,
+cf * cf_create_from_terms(const long long * terms,
                           unsigned int size);
 
 /*
@@ -179,6 +179,14 @@ cf * cf_create_from_fraction(fraction f);
  * Free by `cf_free()' helper macro.
  */
 cf * cf_create_from_float(double d);
+
+/*
+ * Create a continued fraction from a float pointer number expressed in
+ * a string.
+ *
+ * Free by `cf_free()' helper macro.
+ */
+cf * cf_create_from_float_str(const char * float_str);
 
 /*
  * Create a continued fraction from homograhic function of another
@@ -233,7 +241,7 @@ cf * cf_create_from_float(double d);
  *
  * Free by `cf_free()' helper macro.
  */
-cf * cf_create_from_homographic(const cf * const x,
+cf * cf_create_from_homographic(const cf * x,
                                 long long a, long long b,
                                 long long c, long long d);
 
@@ -273,8 +281,7 @@ cf * cf_create_from_homographic(const cf * const x,
  *
  * Free by `cf_free()' helper macro.
  */
-cf * cf_create_from_bihomographic(const cf * const x,
-                                  const cf * const y,
+cf * cf_create_from_bihomographic(const cf * x, const cf * y,
                                   long long a, long long b,
                                   long long c, long long d,
                                   long long e, long long f,
@@ -332,9 +339,9 @@ struct _number_pair {
 
 struct _gcf_class {
     number_pair (*next_term)(gcf *g);
-    int (*is_finished)(const gcf * const g);
+    int (*is_finished)(const gcf * g);
     void (*free)(gcf *g);
-    gcf * (*copy)(const gcf * const g);
+    gcf * (*copy)(const gcf * g);
 };
 
 struct _gcf {
@@ -350,7 +357,7 @@ struct _gcf {
  *
  * Free by `cf_free()' helper macro.
  */
-gcf * gcf_create_from_pairs(const number_pair * const arr,
+gcf * gcf_create_from_pairs(const number_pair * arr,
                             unsigned int size);
 
 /*
@@ -422,7 +429,7 @@ gcf * gcf_create_from_pi(void);
  *  
  * Free by `cf_free()' helper macro.
  */
-cf * cf_create_from_ghomo(const gcf * const x,
+cf * cf_create_from_ghomo(const gcf * x,
                           long long a, long long b,
                           long long c, long long d);
 
@@ -449,7 +456,7 @@ struct _cf_gen_class {
     /*
      * Check whether the CF generator is finished.
      */
-    int (*is_finished)(const cf_gen * const gen);
+    int (*is_finished)(const cf_gen * gen);
 
     /*
      * Free a CF generator.
@@ -462,7 +469,7 @@ struct _cf_gen_class {
      * Returns a new CF generator for decimal, and should be freed by
      * `cf_free()' helper macro.
      */
-    cf_gen * (*copy)(const cf_gen * const gen);
+    cf_gen * (*copy)(const cf_gen * gen);
 };
 
 struct _cf_gen {
@@ -475,7 +482,7 @@ struct _cf_gen {
  *
  * Free by `cf_free()' helper macro.
  */
-cf_gen * cf_gen_create_dec(const cf * const c);
+cf_gen * cf_gen_create_dec(const cf * c);
 
 /*
  * Rational approximation of continued fraction
@@ -508,7 +515,7 @@ struct _cf_approx_class {
      * Check whether the approximation is finished.
      * If is finished, the CF is a rational number.
      */
-    int (*is_finished)(const cf_approx * const approx);
+    int (*is_finished)(const cf_approx * approx);
 
     /*
      * Free the approximation
@@ -518,7 +525,7 @@ struct _cf_approx_class {
     /*
      * Make a new copy of this approximation
      */
-    cf_approx * (*copy)(const cf_approx * const approx);
+    cf_approx * (*copy)(const cf_approx * approx);
 };
 
 struct _cf_approx {
@@ -531,7 +538,7 @@ struct _cf_approx {
  *
  * Free by `cf_free()' helper macro.
  */
-cf_approx * cf_approx_create(const cf * const c);
+cf_approx * cf_approx_create(const cf * c);
 
 
 #if defined (__cplusplus)

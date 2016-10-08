@@ -20,7 +20,7 @@ static long long numbers_next_term(cf *c)
     return n->idx < n->size ? n->arr[n->idx++] : LLONG_MAX;
 }
 
-static int numbers_is_finished(const cf * const c)
+static int numbers_is_finished(const cf * c)
 {
     return ((numbers*)c)->idx >= ((numbers*)c)->size;
 }
@@ -31,7 +31,7 @@ static void numbers_free(cf *c)
     free(c);
 }
 
-static cf * numbers_copy(const cf * const c)
+static cf * numbers_copy(const cf * c)
 {
     numbers * n = (numbers*)c;
     return cf_create_from_terms(n->arr + n->idx, n->size - n->idx);
@@ -44,7 +44,7 @@ static cf_class _numbers_class = {
     numbers_copy
 };
 
-cf * cf_create_from_terms(const long long * const arr, unsigned int size)
+cf * cf_create_from_terms(const long long * arr, unsigned int size)
 {
     numbers * n;
 

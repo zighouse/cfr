@@ -163,7 +163,7 @@ static long long bihomographic_next_term(cf *c)
     return LLONG_MAX;
 }
 
-static int bihomographic_is_finished(const cf * const c)
+static int bihomographic_is_finished(const cf * c)
 {
     bihomographic * h = (bihomographic*) c;
     return h->e == 0ll && h->f == 0ll && h->g == 0ll && h->h == 0ll;
@@ -177,7 +177,7 @@ static void bihomographic_free(cf *c)
     free(h);
 }
 
-static cf * bihomographic_copy(const cf * const c)
+static cf * bihomographic_copy(const cf * c)
 {
     bihomographic * h = (bihomographic*) c;
     return cf_create_from_bihomographic(h->x, h->y,
@@ -192,7 +192,7 @@ static cf_class _bihomographic_class = {
     bihomographic_copy
 };
 
-cf * cf_create_from_bihomographic(const cf * const x, const cf * const y,
+cf * cf_create_from_bihomographic(const cf * x, const cf * y,
                                   long long a, long long b, long long c, long long d,
                                   long long e, long long f, long long g, long long h)
 {

@@ -64,7 +64,7 @@ static long long homographic_next_term(cf *c)
     return LLONG_MAX;
 }
 
-static int homographic_is_finished(const cf * const c)
+static int homographic_is_finished(const cf * c)
 {
     homographic * h = (homographic*) c;
     return h->c == 0ll && h->d == 0ll;
@@ -77,7 +77,7 @@ static void homographic_free(cf *c)
     free(h);
 }
 
-static cf * homographic_copy(const cf * const c)
+static cf * homographic_copy(const cf * c)
 {
     homographic * h = (homographic*) c;
     return cf_create_from_homographic(h->x, h->a, h->b, h->c, h->d);
@@ -90,7 +90,7 @@ static cf_class _homographic_class = {
     homographic_copy
 };
 
-cf * cf_create_from_homographic(const cf * const x,
+cf * cf_create_from_homographic(const cf * x,
                                long long a, long long b,
                                long long c, long long d)
 {

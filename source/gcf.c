@@ -22,7 +22,7 @@ static number_pair pnumbers_next_term(gcf *g)
         n->arr[n->idx++] : (number_pair){1ll, LLONG_MAX};
 }
 
-static int pnumbers_is_finished(const gcf * const g)
+static int pnumbers_is_finished(const gcf * g)
 {
     return ((pnumbers*)g)->idx >= ((pnumbers*)g)->size;
 }
@@ -33,7 +33,7 @@ static void pnumbers_free(gcf *g)
     free(g);
 }
 
-static gcf * pnumbers_copy(const gcf * const g)
+static gcf * pnumbers_copy(const gcf * g)
 {
     pnumbers * n = (pnumbers*)g;
     return gcf_create_from_pairs(n->arr + n->idx, n->size - n->idx);
@@ -46,7 +46,7 @@ static gcf_class _pnumbers_class = {
     pnumbers_copy
 };
 
-gcf * gcf_create_from_pairs(const number_pair * const arr, unsigned int size)
+gcf * gcf_create_from_pairs(const number_pair * arr, unsigned int size)
 {
     pnumbers * n;
 
@@ -161,7 +161,7 @@ EXIT_FUNC:
     return result;
 }
 
-static int ghomo_is_finished(const cf * const c)
+static int ghomo_is_finished(const cf * c)
 {
     ghomo * h = (ghomo*) c;
     return mpz_sgn(h->c) == 0 && mpz_sgn(h->d) == 0;
@@ -176,10 +176,10 @@ static void ghomo_free(cf *c)
 }
 
 static
-cf * cf_create_from_ghomo_mpz(const gcf * const x,
+cf * cf_create_from_ghomo_mpz(const gcf * x,
                               mpz_t a, mpz_t b,
                               mpz_t c, mpz_t d);
-static cf * ghomo_copy(const cf * const c)
+static cf * ghomo_copy(const cf * c)
 {
     ghomo * h = (ghomo*) c;
     return cf_create_from_ghomo_mpz(h->x, h->a, h->b, h->c, h->d);
@@ -193,7 +193,7 @@ static cf_class _ghomo_class = {
 };
 
 static
-cf * cf_create_from_ghomo_mpz(const gcf * const x,
+cf * cf_create_from_ghomo_mpz(const gcf * x,
                               mpz_t a, mpz_t b,
                               mpz_t c, mpz_t d)
 {
@@ -213,7 +213,7 @@ cf * cf_create_from_ghomo_mpz(const gcf * const x,
     return &h->base;
 }
 
-cf * cf_create_from_ghomo(const gcf * const x,
+cf * cf_create_from_ghomo(const gcf * x,
                           long long a, long long b,
                           long long c, long long d)
 {
@@ -276,7 +276,7 @@ static number_pair gcf_pi_next_term(gcf *g)
     }
 }
 
-static int gcf_pi_is_finished(const gcf * const g)
+static int gcf_pi_is_finished(const gcf * g)
 {
     return 0;
 }
@@ -286,7 +286,7 @@ static void gcf_pi_free(gcf *g)
     free(g);
 }
 
-static gcf * gcf_pi_copy(const gcf * const g)
+static gcf * gcf_pi_copy(const gcf * g)
 {
     return gcf_create_from_pi();
 }

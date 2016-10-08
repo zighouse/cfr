@@ -97,9 +97,9 @@ EXIT_FUNC:
 }
 
 static
-int cf_gen_dec_is_finished(const cf_gen * const gen)
+int cf_gen_dec_is_finished(const cf_gen * gen)
 {
-    const cf_gen_dec * const g = (const cf_gen_dec * const)gen;
+    const cf_gen_dec * g = (const cf_gen_dec *)gen;
     return mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0;
 }
 
@@ -113,9 +113,9 @@ void cf_gen_dec_free(cf_gen *gen)
 }
 
 static
-cf_gen * cf_gen_dec_copy(const cf_gen * const gen)
+cf_gen * cf_gen_dec_copy(const cf_gen * gen)
 {
-    const cf_gen_dec * const g = (const cf_gen_dec * const)gen;
+    const cf_gen_dec * g = (const cf_gen_dec *)gen;
     return cf_gen_create_dec(g->x);
 }
 
@@ -126,7 +126,7 @@ static cf_gen_class _cf_gen_dec_class = {
     cf_gen_dec_copy
 };
 
-cf_gen * cf_gen_create_dec(const cf * const x)
+cf_gen * cf_gen_create_dec(const cf * x)
 {
     cf_gen_dec * g =
         (cf_gen_dec*)malloc(sizeof(cf_gen_dec));
