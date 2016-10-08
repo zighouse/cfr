@@ -1,94 +1,60 @@
 /*
-** calculate continued fraction for a fraction or a real number.
-** In long long integers by Xie Zhigang, 27 Aug 2016
-** With corrections from Arno Formella, May 2008 (http://www.ics.uci.edu/~eppstein/numth/frap.c)
-** David Eppstein / UC Irvine / 8 Aug 1993
-**
-** based on the theory of continued fractions
-** if x = a1 + 1/(a2 + 1/(a3 + 1/(a4 + ...)))
-** then best approximation is found by truncating this series
-** (with some adjustments in the last term).
-**
-** Note the fraction can be recovered as the first column of the matrix
-**  ( a1 1 ) ( a2 1 ) ( a3 1 ) ...
-**  ( 1  0 ) ( 1  0 ) ( 1  0 )
-** Instead of keeping the sequence of continued fraction terms,
-** we just keep the last partial product of these matrices.
-*/
+ * Calculate continued fraction for a fraction or a real number.
+ * 
+ * -- Xie Zhigang, 2016-10-08
+ */
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <getopt.h>
 
-#define VERSION "1.0"
+#include "cf.h"
 
-struct _fraction {
-    long long n;
-    long long d;
-};
+#define VERSION "0.1.1"
+
 struct _settings {
     long long max_denominator;
     long long max_numerator;
     int max_index;
 };
-typedef struct _fraction fraction;
 typedef struct _settings settings;
 
 /*
  * inform that after an iteration, the continued fraction coefficient ai is calculated.
- * f   - fraction at current iteration.
- * ai  - continued fraction coefficient.
+ * t   - term at current iteration.
  * gcd - gcd or 0 if is approximation.
  * data - opaque user data
  */
-typedef void(*cfrcb)(fraction f, long long ai, long long gcd, void * data);
+typedef void(*cfrcb)(cf_approx_term * t, long long gcd, void * data);
 
-static int cfr(fraction f, settings *limits, cfrcb print, void * data)
+static int cfr(cf * x, long long gcd, settings *limits, cfrcb print, void * data)
 {
-    long long m[4];
-    long long ai;
-    int index;
+    cf_approx * cfap = cf_approx_create(x);
+    cf_approx_term term;
+    int index = 0;
 
-    m[0] = m[3] = 1ll;
-    m[2] = m[1] = 0ll;
-    index = 0;
-
-    while (f.d)
+    while (!cf_is_finished(cfap))
     {
-        fraction t;
-        long long mod;
-
-        ai = f.n / f.d;
-        mod = f.n % f.d;
-        if (ai < 0)
+        term = cf_next_term(cfap);
+        if (term.rational.n > limits->max_numerator ||
+            term.rational.d > limits->max_denominator ||
+            ++index > limits->max_index)
         {
-            --ai;
-            mod += f.d;
-        }
-
-        t.n = m[0] * ai + m[2];
-        t.d = m[1] * ai + m[3];
-
-        if (t.n > limits->max_numerator ||
-            t.d > limits->max_denominator ||
-            ++index >= limits->max_index)
-        {
+            cf_free(cfap);
             return 0; /* not complete */
         }
-            
-        print(t, ai, mod ? 0 : f.d, data);
-
-        m[2] = m[0];
-        m[3] = m[1];
-
-        m[0] = t.n;
-        m[1] = t.d;
-
-        f.n = f.d;
-        f.d = mod;
+        if (cf_is_finished(cfap))
+        {
+            print(&term, gcd, data);
+        }
+        else
+        {
+            print(&term, 0, data);
+        }
     }
 
+    cf_free(cfap);
     return 1; /* complete */
 }
 
@@ -116,8 +82,8 @@ static void help(char * name)
     fprintf(stderr, "    %s 144 89\n", name);
     fprintf(stderr, "    %s -c 89 144\n", name);
     fprintf(stderr, "    %s -c -p 55 144\n", name);
-    fprintf(stderr, "    %s -c -n 4 3.1419265\n", name);
-    fprintf(stderr, "    %s -s -m 200 3.1419265\n", name);
+    fprintf(stderr, "    %s -c -n 4 3.14159265\n", name);
+    fprintf(stderr, "    %s -s -m 200 3.14159265\n", name);
     fprintf(stderr, "    %s -c -p -n 18 2.71828182845964\n", name);
     fprintf(stderr, "    %s -l 1920 1080\n", name);
     fprintf(stderr, "    %s -cp -- -16 9\n", name);
@@ -125,18 +91,16 @@ static void help(char * name)
 }
 
 struct cfstep {
-    fraction simp;
-    long long ai;
+    cf_approx_term t;
     long long gcd;
     struct cfstep * next;
     struct cfstep * prev;
 };
 
 struct context {
-    fraction f;
-    double x;
+    cf * x;
+    fraction rat;
     settings limits;
-    //int sign;
     int is_float;
     int is_welformed;
     int is_complete;
@@ -145,7 +109,7 @@ struct context {
     struct cfstep * steps;
 };
 
-static void cfrcb_print_verb(fraction f, long long ai, long long gcd, void * data)
+static void cfrcb_print_verb(cf_approx_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     // columns: simp, ai, error or gcd
@@ -153,27 +117,29 @@ static void cfrcb_print_verb(fraction f, long long ai, long long gcd, void * dat
     {
         if (ctx->is_float)
         { 
-            printf("%lld/%lld %lld err=0\n", f.n, f.d, ai);
+            printf("%lld/%lld %lld (err = 0)\n",
+                   t->rational.n, t->rational.d, t->ai);
         }
         else
         {
-            printf("%lld/%lld %lld gcd=%lld\n", f.n, f.d, ai, gcd);
+            printf("%lld/%lld %lld gcd=%lld\n",
+                   t->rational.n, t->rational.d, t->ai, gcd);
         }
     }
     else
     {
-        printf("%lld/%lld %lld err=%g\n", f.n, f.d,
-               ai, ctx->x - (double)f.n/(double)f.d);
+        printf("%lld/%lld %lld (1/%lld < err < 1/%lld)\n",
+               t->rational.n, t->rational.d, t->ai,
+               t->lower_error, t->upper_error);
     }
     ++ctx->index;
 }
 
-static void cfrcb_collect_steps(fraction f, long long ai, long long gcd, void * data)
+static void cfrcb_collect_steps(cf_approx_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     struct cfstep * step = (struct cfstep*)malloc(sizeof(struct cfstep));
-    step->simp = f;
-    step->ai = ai;
+    step->t = *t;
     step->gcd = gcd;
     step->next = ctx->steps;
     if (ctx->steps)
@@ -198,9 +164,9 @@ static void print_welformed(void * data)
     }
 
     // get max field length
-    field_len[0] = snprintf(buf, sizeof buf, "%lld", ctx->steps->simp.n);
-    field_len[1] = snprintf(buf, sizeof buf, "%lld", ctx->steps->simp.d);
-    field_len[2] = snprintf(buf, sizeof buf, "%lld", ctx->steps->ai);
+    field_len[0] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.rational.n);
+    field_len[1] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.rational.d);
+    field_len[2] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.ai);
     
     // reorder the list
     head = NULL;
@@ -211,7 +177,7 @@ static void print_welformed(void * data)
         ctx->steps = ctx->steps->next;
         t->next = head;
         head = t;
-        len = snprintf(buf, sizeof buf, "%lld", t->ai);
+        len = snprintf(buf, sizeof buf, "%lld", t->t.ai);
         field_len[2] = field_len[2] > len ? field_len[2] : len;
     }
     ctx->steps = head;
@@ -223,22 +189,22 @@ static void print_welformed(void * data)
         {
             if (ctx->is_float)
             { 
-                snprintf(buf, sizeof buf, "%s", "err = 0");
+                snprintf(buf, sizeof buf, "%s", "(err = 0)");
             }
             else
             {
-                snprintf(buf, sizeof buf, "gcd = %lld", head->gcd);
+                snprintf(buf, sizeof buf, "(gcd = %lld)", head->gcd);
             }
         }
         else
         {
-            snprintf(buf, sizeof buf, "err = %e",
-                     ctx->x - (double)head->simp.n/(double)head->simp.d);
+            snprintf(buf, sizeof buf, "(1/%lld < err < 1/%lld)",
+                     head->t.lower_error, head->t.upper_error);
         }
         printf("%*lld / %-*lld  %*lld  %s\n",
-               field_len[0], head->simp.n, 
-               field_len[1], head->simp.d,
-               field_len[2], head->ai,
+               field_len[0], head->t.rational.n, 
+               field_len[1], head->t.rational.d,
+               field_len[2], head->t.ai,
                buf);
     }
 }
@@ -273,7 +239,7 @@ static void print_welformed_cont(void *data)
         struct range * p;
         char buf[100];
 
-        field->length = snprintf(buf, sizeof buf, "%lld", step->ai);
+        field->length = snprintf(buf, sizeof buf, "%lld", step->t.ai);
         field->text = strdup(buf);
         field->offset = 0;
 
@@ -310,27 +276,17 @@ static void print_welformed_cont(void *data)
     free(fields);
 }
 
-static void cfrcb_print_gcd(fraction f, long long ai, long long gcd, void * data)
+static void cfrcb_accept_simp(cf_approx_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
-    if (gcd && !ctx->is_float)
-    {
-        printf("%lld\n", gcd);
-    }
+    ctx->steps[0].t = *t;
     ++ctx->index;
 }
 
-static void cfrcb_accept_simp(fraction f, long long ai, long long gcd, void * data)
+static void cfrcb_print_cont(cf_approx_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
-    ctx->steps[0].simp = f;
-    ++ctx->index;
-}
-
-static void cfrcb_print_cont(fraction f, long long ai, long long gcd, void * data)
-{
-    struct context * ctx = (struct context*) data;
-    printf(ctx->index++ ? " %lld" : "%lld", ai);
+    printf(ctx->index++ ? " %lld" : "%lld", t->ai);
 }
 
 static void print_report(int argc, char ** argv, void *data)
@@ -342,20 +298,9 @@ static void print_report(int argc, char ** argv, void *data)
         return;
     }
 
-    printf("Input:\n");
-    printf("    fraction := %lld / %lld\n", ctx->f.n, ctx->f.d);
-    printf("        real := %e (%s)\n", ctx->x, (ctx->is_float ? "float input" : "evaluated"));
-    printf("\nConfiguration & limits:\n");
-    printf("          sizeof integer := %u\n", (unsigned)sizeof(long long) * 8);
-    printf("             max integer := %lld\n", LLONG_MAX);
-    printf("           max numerator := %lld\n", ctx->limits.max_numerator);
-    printf("         max denominator := %lld\n", ctx->limits.max_denominator);
-    printf("    max number of levels := %d\n", ctx->limits.max_index);
-
-
     ctx->is_welformed = 1;
 
-    printf("\nResult:\n");
+    printf("\nStatus:\n");
     printf("    Calculation is%s completed.\n", ctx->is_complete ? "" : " not");
     if (ctx->is_complete && !ctx->is_float)
     {
@@ -365,7 +310,8 @@ static void print_report(int argc, char ** argv, void *data)
     {
         printf("    GCD is not available.\n");
     }
-    printf("    Simple fraction = %lld / %lld\n", ctx->steps->simp.n, ctx->steps->simp.d);
+    printf("    Simple fraction = %lld / %lld\n",
+           ctx->steps->t.rational.n, ctx->steps->t.rational.d);
 
     printf("\nContinued fraction:\n");
     print_welformed_cont(ctx);
@@ -375,64 +321,11 @@ static void print_report(int argc, char ** argv, void *data)
 }
 
 // {{{ parse options
-static int parsef(char * arg, fraction *f)
-{
-    long long v, m;
-
-    do {
-        char * endptr;
-        v = strtoll(arg, &endptr, 10);
-        m = 1;
-
-        if (v == LLONG_MAX || v == LLONG_MIN)
-        {
-            goto bail;
-        }
-
-        // posible float
-        if (endptr && *endptr)
-        {
-            if (endptr[0] == '.')
-            {
-                char buff[100];
-                int len;
-
-                len = snprintf(buff, sizeof(buff), "%lld", v);
-                len = snprintf(buff + len, sizeof(buff) - len, "%s", endptr + 1);
-
-                v = strtoll(buff, &endptr, 10);
-
-                if (v == LLONG_MAX || v == LLONG_MIN)
-                {
-                    goto bail;
-                }
-
-                if (endptr && *endptr)
-                {
-                    goto bail;
-                }
-
-                for (; len > 0; --len)
-                {
-                    m *= 10;
-                }
-                break;
-            }
-            goto bail;
-        }
-    } while (0);
-
-    f->n = v;
-    f->d = m;
-    return 1;
-bail:
-    fprintf(stderr, "parse number failed: %s\n", arg);
-    return 0;
-}
-
 static int parse_options(int argc, char ** argv, struct context *ctx)
 {
-    int c, sign;
+    char c;
+    char * numerator = NULL;
+    char * denominator = NULL;
 
     // parse named options
     while (1) {
@@ -535,39 +428,23 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
     {
         return 1;
     }
-    if (!strchr(argv[optind], '/'))
+    numerator = strdup(argv[optind++]);
     {
-        if (!parsef(argv[optind++], &ctx->f))
+        char * p = strrchr(numerator, '/');
+        if (p)
         {
-            return 1;
+            *p = '\0';
+            ++p;
+            if (*p)
+            {
+                denominator = strdup(p);
+            }
         }
     }
-    else
-    {
-        char * p = strchr(argv[optind], '/');
-        *p++ = '\0';
-        if (!parsef(argv[optind], &ctx->f))
-        {
-            return 1;
-        }
-        argv[optind] = p;
-    }
-    if (ctx->f.n < 0)
-    {
-        ctx->f.n = -ctx->f.n;
-        sign = 1;
-    }
-    else
-    {
-        sign = 0;
-    }
-    ctx->is_float = ctx->f.d > 1;
 
     // parse denominator
-    if (optind < argc)
+    if (!denominator && optind < argc)
     {
-        fraction f;
-
         if (*argv[optind] == '/')
         {
             if (argv[optind][1] == '\0')
@@ -585,31 +462,68 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             }
         }
 
-        if (!parsef(argv[optind++], &f))
+        denominator = strdup(argv[optind++]);
+    }
+    {
+        cf *cfx = NULL, *cfy = NULL;
+        long long nx = 0ll, ny = 0ll;
+
+        ctx->is_float = 0;
+        if (strchr(numerator, '.'))
         {
-            return 1;
-        }
-        if (f.d > 1)
-        {
+            cfx = cf_create_from_float_str(numerator);
             ctx->is_float = 1;
-        }
-        if (f.n < 0)
-        {
-            f.n = -f.n;
-            sign = !sign;
-        }
-        if (ctx->f.d > f.d)
-        {
-            ctx->f.d = f.n * ctx->f.d / f.d;
         }
         else
         {
-            ctx->f.n = ctx->f.n * f.d / ctx->f.d;
-            ctx->f.d = f.n;
+            nx = atoll(numerator);
         }
-        if (sign)
+        free(numerator);
+        if (denominator)
         {
-            ctx->f.n = -ctx->f.n;
+            if (strchr(denominator, '.'))
+            {
+                cfy = cf_create_from_float_str(denominator);
+                if (ctx->is_float)
+                {
+                    ctx->x = cf_create_from_bihomographic(cfx, cfy, 0, 1, 0, 0, 0, 0, 1, 0);
+                    cf_free(cfx);
+                    cf_free(cfy);
+                }
+                else
+                {
+                    ctx->is_float = 1;
+                    ctx->x = cf_create_from_homographic(cfy, 0, nx, 1, 0);
+                    cf_free(cfy);
+                }
+            }
+            else
+            {
+                ny = atoll(denominator);
+                if (ctx->is_float)
+                {
+                    ctx->x = cf_create_from_homographic(cfx, 1, 0, 0, ny);
+                    cf_free(cfx);
+                }
+                else
+                {
+                    ctx->x = cf_create_from_fraction((fraction){nx, ny});
+                    ctx->rat = (fraction){nx, ny};
+                }
+            }
+            free(denominator);
+        }
+        else
+        {
+            if (ctx->is_float)
+            {
+                ctx->x = cfx;
+            }
+            else
+            {
+                ctx->x =cf_create_from_fraction((fraction){nx, 1ll});
+                ctx->rat = (fraction){nx, 1ll};
+            }
         }
     }
     return 0;
@@ -619,6 +533,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
 int main(int argc, char ** argv)
 {
     struct context ctx;
+    long long gcd = 0ll;
 
     /* default limits */
     memset(&ctx, 0, sizeof(ctx));
@@ -633,8 +548,10 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    /* calculate float value for latter use */
-    ctx.x = (double)ctx.f.n/(double)ctx.f.d;
+    if (!ctx.is_float)
+    {
+        gcd = cf_get_gcd(ctx.rat.n, ctx.rat.d);
+    }
 
     switch (ctx.show_mod)
     {
@@ -645,15 +562,15 @@ int main(int argc, char ** argv)
             fprintf(stderr, "calculating gcd from float numbers is unsupported.");
             exit(1);
         }
-        cfr(ctx.f, &ctx.limits, cfrcb_print_gcd, &ctx);
+        printf("%lld\n", gcd);
         break;
     case 's':
         /* show simple */
         {
             fraction f;
             ctx.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
-            cfr(ctx.f, &ctx.limits, cfrcb_accept_simp, &ctx);
-            f = ctx.steps->simp;
+            cfr(ctx.x, gcd, &ctx.limits, cfrcb_accept_simp, &ctx);
+            f = ctx.steps->t.rational;
             if (ctx.is_welformed)
             {
                 printf("%lld / %lld\n", f.n, f.d);
@@ -668,12 +585,12 @@ int main(int argc, char ** argv)
         /* show continued fraction */
         if (ctx.is_welformed)
         {
-            ctx.is_complete = cfr(ctx.f, &ctx.limits, cfrcb_collect_steps, &ctx);
+            ctx.is_complete = cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
             print_welformed_cont(&ctx);
         }
         else
         {
-            cfr(ctx.f, &ctx.limits, cfrcb_print_cont, &ctx);
+            cfr(ctx.x, gcd, &ctx.limits, cfrcb_print_cont, &ctx);
             printf("\n");
         }
         break;
@@ -681,16 +598,16 @@ int main(int argc, char ** argv)
     case 'l':
         if (ctx.is_welformed)
         {
-            cfr(ctx.f, &ctx.limits, cfrcb_collect_steps, &ctx);
+            cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
             print_welformed(&ctx);
         }
         else
         {
-            cfr(ctx.f, &ctx.limits, cfrcb_print_verb, &ctx);
+            cfr(ctx.x, gcd, &ctx.limits, cfrcb_print_verb, &ctx);
         }
         break;
     default:
-        ctx.is_complete = cfr(ctx.f, &ctx.limits, cfrcb_collect_steps, &ctx);
+        ctx.is_complete = cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
         print_report(argc, argv, &ctx);
     }
     return 0;
