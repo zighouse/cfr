@@ -20,8 +20,8 @@ OBJS += $(OBJ_DIR)/float.o
 
 CFLAGS += -Wall -Iinclude
 LDFLAGS += -lgmp
-#OPTS = -O2
-OPTS = -g
+OPTS = -O2 -g
+#OPTS = -O0 -g
 
 all: $(LIBS) $(BINS)
 
