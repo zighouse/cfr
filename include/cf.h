@@ -174,6 +174,11 @@ cf * cf_create_from_terms(const long long * terms,
 cf * cf_create_from_fraction(fraction f);
 
 /*
+ * Get gcd between two integers.
+ */
+long long cf_get_gcd(long long a, long long b);
+
+/*
  * Create a continued fraction from a float point number.
  *
  * Free by `cf_free()' helper macro.

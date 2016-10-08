@@ -97,3 +97,17 @@ cf * cf_create_from_fraction(fraction f)
 
     return &r->base;
 }
+
+long long cf_get_gcd(long long a, long long b)
+{
+    long long gcd;
+    cf * c = cf_create_from_fraction((fraction){a, b});
+    rational * r = (rational*) c;
+    while (!cf_is_finished(c))
+    {
+        cf_next_term(c);
+    }
+    gcd = r->current.n;
+    cf_free(c);
+    return gcd;
+}

@@ -424,6 +424,14 @@ static void test_case15(void)
     cf_free(gen);
 }
 
+static void test_case16(void)
+{
+    long long a, b;
+    a = 1920;
+    b = 1080;
+    printf("case16: gcd(%lld, %lld) = %lld\n", a, b, cf_get_gcd(a, b));
+}
+
 int main(void)
 {
     test_case1();
@@ -441,5 +449,6 @@ int main(void)
     test_case13();
     test_case14();
     test_case15();
+    test_case16();
     return 0;
 }
