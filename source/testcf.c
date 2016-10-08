@@ -347,8 +347,7 @@ static void test_case12(void)
 static void test_case13(void)
 {
     int limit, i;
-    gcf *g = gcf_create_from_pi();
-    cf  *c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+    cf  *c = cf_create_from_pi();
     cf_gen * gen = cf_gen_create_dec(c);
 
     printf("case13: pi = ");
@@ -366,7 +365,6 @@ static void test_case13(void)
         }
     }
     printf("...\n");
-    cf_free(g);
     cf_free(c);
     cf_free(gen);
 }
@@ -375,6 +373,7 @@ static void test_case14(void)
 {
     double pi = 3.141592653589793;
     cf  *c;
+
     printf("case14: pi = %.15f\n", pi);
 
     printf("cf(pi):");
@@ -385,6 +384,44 @@ static void test_case14(void)
     }
     printf("\n");
     cf_free(c);
+}
+
+static void test_case15(void)
+{
+    const char * pi = "3.141592653589793238462643383279502884197169399";
+    cf  *c;
+    cf_gen * gen;
+    int i;
+
+    printf("case15: pi = %s\n", pi);
+
+    printf("cf(pi):");
+    c = cf_create_from_float_str(pi);
+    gen = cf_gen_create_dec(c);
+    while (!cf_is_finished(c))
+    {
+        printf(" %lld", cf_next_term(c));
+    }
+    printf("\n");
+    cf_free(c);
+
+    printf("dec(pi) = ");
+    i = 0;
+    while (!cf_is_finished(gen))
+    {
+        int x = cf_next_term(gen);
+        if (i == 0)
+        {
+            printf("%d.", x);
+        }
+        else
+        {
+            printf("%d", x);
+        }
+        ++i;
+    }
+    printf("\n");
+    cf_free(gen);
 }
 
 int main(void)
@@ -403,5 +440,6 @@ int main(void)
     test_case12();
     test_case13();
     test_case14();
+    test_case15();
     return 0;
 }

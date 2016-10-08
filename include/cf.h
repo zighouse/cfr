@@ -288,6 +288,15 @@ cf * cf_create_from_bihomographic(const cf * x, const cf * y,
                                   long long g, long long h);
 
 /*
+ * Create a CF which the value is `pi'.
+ *
+ * Implemented by using function `gcf_create_from_pi()'.
+ *
+ * Free by `cf_free()' helper macro.
+ */
+cf * cf_create_from_pi(void);
+
+/*
  * Generalized continued fraction.
  *
  *                        a1
@@ -380,44 +389,32 @@ gcf * gcf_create_from_pairs(const number_pair * arr,
  * There are multiple expression of pi in GCF format. This GCF
  * expression is not the best one.
  *
- * To get serials of continued fraction or decimal digits, this GCF can
- * be used:
- *
- *     const int limit = 100;
- *     int i;
- *     gcf *g = gcf_create_from_pi();
- *     cf * c = cf_create_from_ghomo(g, 1, 0, 0, 1);
- *     cf_gen_dec * gen = cf_gen_dec_create(c);
- *
- *     printf("cf(pi): ");
- *     for (i = 0; i < limit; ++i)
- *     {
- *         printf(" %lld", cf_next_term(c));
- *     }
- *     printf(" ...\n");
- *
- *     printf("pi: ");
- *     for (i = 0; i < limit; ++i)
- *     {
- *         int x = cf_gen_dec_next(gen);
- *         if (i == 0)
- *         {
- *             printf("%d.", x);
- *         }
- *         else
- *         {
- *             printf("%d", x);
- *         }
- *     }
- *     printf("...\n");
- *
- *     cf_free(g);
- *     cf_free(c);
- *     cf_gen_dec_free(gen);
- *  
  * Free by `cf_free()' helper macro.
  */
 gcf * gcf_create_from_pi(void);
+
+/*
+ * Create a GCF from a float pointer number expressed in a string.
+ *
+ * For float string `b0.b1b2b3...', the gcf is constructed as:
+ *
+ *                             1
+ *     gcf = b0 + -------------------------------
+ *                               10
+ *                0 + ---------------------------
+ *                                  1
+ *                    b1 + ----------------------
+ *                                    10
+ *                         0 + ------------------
+ *                                       1
+ *                             b2 + -------------
+ *                                         10
+ *                                  0 + ---------
+ *                                      b3 + ...
+ *
+ * Free by `cf_free()' helper macro.
+ */
+gcf * gcf_create_from_float_str(const char * float_str);
 
 /*
  * Create a continued fraction from homograhic function by input

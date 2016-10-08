@@ -46,9 +46,18 @@ int cf_gen_dec_next_term(cf_gen *gen)
             mpz_set(a, g->a);
             mpz_set(b, g->b);
 
+            // FIXME: try to output one digit `0' after finished.
             if (mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0)
             {
-                result = INT_MAX;
+                //result = INT_MAX;
+                result = 0;
+                goto EXIT_FUNC;
+            }
+
+            if (mpz_sgn(g->a) == 0 && mpz_sgn(g->b) == 0)
+            {
+                //result = INT_MAX;
+                result = 0;
                 goto EXIT_FUNC;
             }
 
@@ -100,7 +109,8 @@ static
 int cf_gen_dec_is_finished(const cf_gen * gen)
 {
     const cf_gen_dec * g = (const cf_gen_dec *)gen;
-    return mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0;
+    return (mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0)
+        || (mpz_sgn(g->a) == 0 && mpz_sgn(g->b) == 0);
 }
 
 static

@@ -20,6 +20,8 @@ OBJS += $(OBJ_DIR)/float.o
 
 CFLAGS += -Wall -Iinclude
 LDFLAGS += -lgmp
+#OPTS = -O2
+OPTS = -g
 
 all: $(LIBS) $(BINS)
 
@@ -28,7 +30,7 @@ clean:
 
 $(BIN_DIR)/cfr: source/cfr.c
 	mkdir -p $(BIN_DIR)
-	gcc -O2 -o $@ $^
+	gcc $(OPTS) -o $@ $^
 	strip $@
 
 $(LIB_DIR)/libcf.a: $(OBJS)
@@ -37,9 +39,9 @@ $(LIB_DIR)/libcf.a: $(OBJS)
 
 $(BIN_DIR)/testcf: source/testcf.c $(LIBS)
 	mkdir -p $(BIN_DIR)
-	gcc -O2 -o $@ $< -L$(LIB_DIR) -lcf $(LDFLAGS) $(CFLAGS)
+	gcc $(OPTS) -o $@ $< -L$(LIB_DIR) -lcf $(LDFLAGS) $(CFLAGS)
 
 $(OBJ_DIR)/%.o: source/%.c
 	mkdir -p $(OBJ_DIR)
-	gcc -O2 -o $@ $(CFLAGS) -c $<
+	gcc $(OPTS) -o $@ $(CFLAGS) -c $<
 

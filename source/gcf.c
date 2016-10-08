@@ -307,3 +307,11 @@ gcf * gcf_create_from_pi(void)
     pi->base.object_class = &_gcf_pi_class;
     return &pi->base;
 }
+
+cf * cf_create_from_pi(void)
+{
+    gcf *g = gcf_create_from_pi();
+    cf * c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+    cf_free(g);
+    return c;
+}
