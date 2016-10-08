@@ -533,7 +533,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
 int main(int argc, char ** argv)
 {
     struct context ctx;
-    long long gcd = 0ll;
+    long long gcd;
 
     /* default limits */
     memset(&ctx, 0, sizeof(ctx));
@@ -548,11 +548,6 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    if (!ctx.is_float)
-    {
-        gcd = cf_get_gcd(ctx.rat.n, ctx.rat.d);
-    }
-
     switch (ctx.show_mod)
     {
     case 'g':
@@ -562,6 +557,7 @@ int main(int argc, char ** argv)
             fprintf(stderr, "calculating gcd from float numbers is unsupported.");
             exit(1);
         }
+        gcd = cf_get_gcd(ctx.rat.n, ctx.rat.d);
         printf("%lld\n", gcd);
         break;
     case 's':
@@ -569,7 +565,7 @@ int main(int argc, char ** argv)
         {
             fraction f;
             ctx.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
-            cfr(ctx.x, gcd, &ctx.limits, cfrcb_accept_simp, &ctx);
+            cfr(ctx.x, 0, &ctx.limits, cfrcb_accept_simp, &ctx);
             f = ctx.steps->t.rational;
             if (ctx.is_welformed)
             {
@@ -585,17 +581,18 @@ int main(int argc, char ** argv)
         /* show continued fraction */
         if (ctx.is_welformed)
         {
-            ctx.is_complete = cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
+            ctx.is_complete = cfr(ctx.x, 0, &ctx.limits, cfrcb_collect_steps, &ctx);
             print_welformed_cont(&ctx);
         }
         else
         {
-            cfr(ctx.x, gcd, &ctx.limits, cfrcb_print_cont, &ctx);
+            cfr(ctx.x, 0, &ctx.limits, cfrcb_print_cont, &ctx);
             printf("\n");
         }
         break;
         /* list iteration */
     case 'l':
+        gcd = ctx.is_float ? 0 : cf_get_gcd(ctx.rat.n, ctx.rat.d);
         if (ctx.is_welformed)
         {
             cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
@@ -607,6 +604,7 @@ int main(int argc, char ** argv)
         }
         break;
     default:
+        gcd = ctx.is_float ? 0 : cf_get_gcd(ctx.rat.n, ctx.rat.d);
         ctx.is_complete = cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
         print_report(argc, argv, &ctx);
     }
