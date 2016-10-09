@@ -123,6 +123,7 @@ static void test_case7(void)
 {
     cf * h, *x, *y;
     double fx, fy;
+    char *s1, *s2;
     fx = -16.0/9.0;
     fy = 127.0/50.0;
 
@@ -136,15 +137,22 @@ static void test_case7(void)
     h = cf_create_from_bihomographic(x, y,
                                       3,  2,  1, 0,
                                      -1, -2, -3, 4);
+    s1 = cf_convert_to_string_canonical(h, 20);
+    s2 = cf_convert_to_string_float(h, 20);
     while (!cf_is_finished(h))
     {
         printf("%lld ", cf_next_term(h));
     }
     printf("\n");
     printf("           -xy - 2x - 3y + 4\n");
+    printf("CF...: %s\n", s1);
+    printf("float: %s [FIXME] error if minus.\n", s2);
+
     cf_free(x);
     cf_free(y);
     cf_free(h);
+    free(s1);
+    free(s2);
 }
 
 static void test_case8(void)
@@ -178,31 +186,21 @@ static void test_case8(void)
 static void test_case9(void)
 {
     cf * c;
-    long long m[4];
+    cf_converg_gen * gen;
 
     printf("case9: 16 / 9: \n");
 
-    m[0] = m[3] = 1ll;
-    m[2] = m[1] = 0ll;
-
     c = cf_create_from_fraction((fraction){16, 9});
-    while (!cf_is_finished(c))
+    gen = cf_converg_gen_create(c);
+    while (!cf_is_finished(gen))
     {
-        long long ai;
-        fraction s;
+        cf_converg_term t = cf_next_term(gen);
 
-        ai = cf_next_term(c);
-        s.n = m[0] * ai + m[2];
-        s.d = m[1] * ai + m[3];
-
-        m[2] = m[0];
-        m[3] = m[1];
-
-        m[0] = s.n;
-        m[1] = s.d;
-        printf("       %lld, %lld / %lld\n", ai, s.n, s.d);
+        printf("       %lld, %lld / %lld\n",
+               t.coef, t.convergent.n, t.convergent.d);
     }
     cf_free(c);
+    cf_free(gen);
 }
 
 static void test_case10(void)
@@ -244,47 +242,6 @@ static void test_case11(void)
 {
     cf *c;
     gcf *g;
-#if 1
-    /*
-     *                    1
-     * pi = 3 + ----------------------
-     *                      9
-     *          6 + ------------------
-     *                        25
-     *               6 + -------------
-     *                          49
-     *                   6 + ---------
-     *                             81
-     *                       6 + -----
-     *                            ...
-     */
-    number_pair pairs[] = {
-        {  1, 3},
-        {1*1, 6},
-        {3*3, 6},
-        {5*5, 6},
-        {7*7, 6},
-        {9*9, 6},
-        {11*11, 6},
-        {13*13, 6},
-        {15*15, 6},
-        {17*17, 6},
-        {19*19, 6},
-    };
-#else
-    /*
-     *                    4
-     * pi = 0 + ----------------------
-     *                      1
-     *          1 + ------------------
-     *                         4
-     *               3 + -------------
-     *                           9
-     *                   5 + ---------
-     *                             16
-     *                       7 + -----
-     *                            ...
-     */
     number_pair pairs[] = {
         {1, 0},
         {4, 1},
@@ -297,17 +254,17 @@ static void test_case11(void)
         {49, 15},
         {64, 17},
     };
-#endif
 
-    printf("case11: gcf(pi): \n");
+    printf("case11: gcf(pi): ");
 
     g = gcf_create_from_pairs(pairs, sizeof(pairs)/sizeof(pairs[0]));
     c = cf_create_from_ghomo(g, 1, 0, 0, 1);
     while (!cf_is_finished(g))
     {
         number_pair pn = cf_next_term(g);
-        printf("%lld, %lld\n", pn.a, pn.b);
+        printf("(%lld, %lld) ", pn.a, pn.b);
     }
+    printf("\n");
     printf("cf(pi): ");
     while (!cf_is_finished(c))
     {
@@ -324,106 +281,68 @@ static void test_case12(void)
     int limit, i;
     gcf *g = gcf_create_from_pi();
     cf * c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+    char * s = cf_convert_to_string_canonical(c, 100);
 
     limit = 10;
-    printf("case12: gcf(pi): \n");
+    printf("case12: gcf(pi): ");
     for (i = 0; i < limit; ++i)
     {
         number_pair pn = cf_next_term(g);
-        printf("%lld, %lld\n", pn.a, pn.b);
+        printf("(%lld,%lld) ", pn.a, pn.b);
     }
-    printf("..., ...\n");
+    printf("...\n");
 
-    limit = 100;
-    printf("cf(pi): ");
-    for (i = 0; i < limit; ++i)
-    {
-        printf(" %lld", cf_next_term(c));
-    }
-    printf(" ...\n");
+    printf("cf(pi): %s\n", s);
 
     cf_free(g);
     cf_free(c);
+    free(s);
 }
 
 static void test_case13(void)
 {
-    int limit, i;
     cf  *c = cf_create_from_pi();
-    cf_digit_gen * gen = cf_digit_gen_create_dec(c);
+    char * s = cf_convert_to_string_float(c, 100);
 
-    printf("case13: pi = ");
-    limit = 100;
-    for (i = 0; i < limit; ++i)
-    {
-        int x = cf_next_term(gen);
-        if (i == 0)
-        {
-            printf("%d.", x);
-        }
-        else
-        {
-            printf("%d", x);
-        }
-    }
-    printf("...\n");
+    printf("case13: pi = %s\n", s);
+
     cf_free(c);
-    cf_free(gen);
+    free(s);
 }
 
 static void test_case14(void)
 {
     double pi = 3.141592653589793;
     cf  *c;
+    char * str;
 
     printf("case14: pi = %.15f\n", pi);
 
-    printf("cf(pi):");
     c = cf_create_from_float(pi);
-    while (!cf_is_finished(c))
-    {
-        printf(" %lld", cf_next_term(c));
-    }
-    printf("\n");
+    str = cf_convert_to_string_canonical(c, 20);
+    printf("cf(pi): %s\n", str);
+
     cf_free(c);
+    free(str);
 }
 
 static void test_case15(void)
 {
     const char * pi = "3.141592653589793238462643383279502884197169399";
     cf  *c;
-    cf_digit_gen * gen;
-    int i;
+    char * str1, * str2;
 
     printf("case15: pi = %s\n", pi);
 
-    printf("cf(pi):");
     c = cf_create_from_string_float(pi);
-    gen = cf_digit_gen_create_dec(c);
-    while (!cf_is_finished(c))
-    {
-        printf(" %lld", cf_next_term(c));
-    }
-    printf("\n");
-    cf_free(c);
+    str1 = cf_convert_to_string_canonical(c, 20);
+    str2 = cf_convert_to_string_float(c, 50);
+    printf("cf(pi): %s\n", str1);
+    printf("dec(pi) = %s\n", str2);
 
-    printf("dec(pi) = ");
-    i = 0;
-    while (!cf_is_finished(gen))
-    {
-        int x = cf_next_term(gen);
-        if (i == 0)
-        {
-            printf("%d.", x);
-        }
-        else
-        {
-            printf("%d", x);
-        }
-        ++i;
-    }
-    printf("\n");
-    cf_free(gen);
+    free(str1);
+    free(str2);
+    cf_free(c);
 }
 
 static void test_case16(void)

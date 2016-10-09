@@ -211,6 +211,13 @@ cf * cf_create_from_string_float(const char * float_str);
 char * cf_convert_to_string_float(const cf *c, int max_digits);
 
 /*
+ * Express CF as canonical string.
+ *
+ * The returned string need to be freed.
+ */
+char * cf_convert_to_string_canonical(const cf *c, int max_terms);
+
+/*
  * Create a continued fraction from homograhic function of another
  * continued fraction.
  *

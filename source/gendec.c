@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -153,11 +154,11 @@ cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
     return &g->base;
 }
 
-#include <stdio.h>
+// FIXME: get an error string if it is negative.
 char * cf_convert_to_string_float(const cf *c, int max_digits)
 {
     cf_digit_gen * gen;
-    char buf[4096], *p, *result;
+    char buf[64], *p, *result;
     int size, count, digit;
     int realloced = 0;
 
@@ -180,7 +181,7 @@ char * cf_convert_to_string_float(const cf *c, int max_digits)
         count += chars;
         max_digits -= chars;
         // reallocate new buffer to contain the too long string.
-        if (count > size - 2)
+        if (count > size - 5)
         {
             int new_size = size << 1;
             char * new_buf = (char*)malloc(new_size);
@@ -199,11 +200,17 @@ char * cf_convert_to_string_float(const cf *c, int max_digits)
             realloced = 1;
         }
     }
-    cf_free(gen);
 
     if (count)
     {
-        p[count] = '\0';
+        if (!cf_is_finished(gen))
+        {
+            strcpy(p+count, "...");
+        }
+        else
+        {
+            p[count] = '\0';
+        }
     }
     else
     {
@@ -215,6 +222,7 @@ char * cf_convert_to_string_float(const cf *c, int max_digits)
     {
         free(p);
     }
+    cf_free(gen);
 
     return result;
 }

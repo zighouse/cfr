@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -158,4 +159,76 @@ int cf_compare(const cf *_x, const cf *_y)
     cf_free(y);
 
     return cmp;
+}
+
+char * cf_convert_to_string_canonical(const cf *c, int max_terms)
+{
+    cf * x = cf_copy(c);
+    char buf[64], *p, *result;
+    int size, count;
+    int realloced = 0;
+
+    p = buf;
+    size = sizeof(buf);
+    count = 0;
+    realloced = 0;
+
+    while (max_terms > 0 && !cf_is_finished(x))
+    {
+        long long coef = cf_next_term(x);
+        int chars = snprintf(p + count, size - count,
+                             count ? " %lld" : "[%lld", coef);
+        if (!cf_is_finished(x))
+        {
+            snprintf(p + count + chars, size - count - chars,
+                     count ? "," : ";");
+            ++count;
+        }
+        count += chars;
+        --max_terms;
+        // reallocate new buffer to contain the too long string.
+        if (count > size - 7)
+        {
+            int new_size = size << 1;
+            char * new_buf = (char*)malloc(new_size);
+            if (!new_buf)
+            {
+                // failed.
+                break;
+            }
+            memcpy(new_buf, p, count);
+            if (realloced)
+            {
+                free(p);
+            }
+            p = new_buf;
+            size = new_size;
+            realloced = 1;
+        }
+    }
+
+    if (count)
+    {
+        if (!cf_is_finished(x))
+        {
+            strcpy(p+count, " ...]");
+        }
+        else
+        {
+            strcpy(p+count, "]");
+        }
+    }
+    else
+    {
+        strcpy(p, "[NAN]");
+    }
+
+    result = strdup(p);
+    if (realloced)
+    {
+        free(p);
+    }
+    cf_free(x);
+
+    return result;
 }
