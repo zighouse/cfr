@@ -436,34 +436,34 @@ cf * cf_create_from_ghomo(const gcf * x,
                           long long c, long long d);
 
 /*
- * CF generator generates digits from a continued fraction.
+ * CF Digit Generator generates digits from a continued fraction.
  *
  * A continued fraction is a good expression of real numbers, but
  * decimal digits is far more convenient. CF generator is used to
  * generate decimal digits one by one.
  *
  * To generate decimal digits for a CF, should use
- * `cf_gen_create_dec()'.
+ * `cf_digit_gen_create_dec()'.
  */
-typedef struct _cf_gen cf_gen;
-typedef struct _cf_gen_class cf_gen_class;
+typedef struct _cf_digit_gen cf_digit_gen;
+typedef struct _cf_digit_gen_class cf_digit_gen_class;
 
-struct _cf_gen_class {
+struct _cf_digit_gen_class {
 
     /*
      * Retrieve next term (next digit) from a CF generator.
      */
-    int (*next_term)(cf_gen *gen);
+    int (*next_term)(cf_digit_gen *gen);
 
     /*
      * Check whether the CF generator is finished.
      */
-    int (*is_finished)(const cf_gen * gen);
+    int (*is_finished)(const cf_digit_gen * gen);
 
     /*
      * Free a CF generator.
      */
-    void (*free)(cf_gen * gen);
+    void (*free)(cf_digit_gen * gen);
 
     /*
      * Make a copy of a CF generator for decimal.
@@ -471,12 +471,12 @@ struct _cf_gen_class {
      * Returns a new CF generator for decimal, and should be freed by
      * `cf_free()' helper macro.
      */
-    cf_gen * (*copy)(const cf_gen * gen);
+    cf_digit_gen * (*copy)(const cf_digit_gen * gen);
 };
 
-struct _cf_gen {
+struct _cf_digit_gen {
     /* Class definition of a continued fraction digits generator */
-    cf_gen_class * object_class;
+    cf_digit_gen_class * object_class;
 };
 
 /*
@@ -484,55 +484,61 @@ struct _cf_gen {
  *
  * Free by `cf_free()' helper macro.
  */
-cf_gen * cf_gen_create_dec(const cf * c);
+cf_digit_gen * cf_digit_gen_create_dec(const cf * c);
 
 /*
- * Rational approximation of continued fraction
+ * CF Convergent Generator generates convergants for a CF.
+ *
+ * A convergent is a rational approximation of CF. A larger term of
+ * convergent is closser to value of CF.
  */
-typedef struct _cf_approx cf_approx;
-typedef struct _cf_approx_class cf_approx_class;
+typedef struct _cf_converg_gen cf_converg_gen;
+typedef struct _cf_converg_gen_class cf_converg_gen_class;
 
 /*
- * Term of rational approximation of CF.
+ * Convergent of CF.
+ *
+ * A term of rational approximation of CF.
  */
-typedef struct _cf_approx_term {
+typedef struct _cf_converg_term {
     long long ai;           /* CF term */
-    fraction  rational;     /* rational approximation on this term */
-                            /* error range of approximation:
+    fraction  convergent;   /* convergent or rational approximation on
+                               this term */
+                            /* error range of convergent:
                              * numerator is always 1.
                              * If denominator is LLONG_MAX, error is 0.
                              */
     long long lower_error;  /* denominator of lower error */
     long long upper_error;  /* denominator of upper error */
-} cf_approx_term;
+} cf_converg_term;
 
-struct _cf_approx_class {
+struct _cf_converg_gen_class {
 
     /*
      * Retrieve next approximation term
      */
-    cf_approx_term (*next_term)(cf_approx * approx);
+    cf_converg_term (*next_term)(cf_converg_gen * approx);
 
     /*
      * Check whether the approximation is finished.
      * If is finished, the CF is a rational number.
      */
-    int (*is_finished)(const cf_approx * approx);
+    int (*is_finished)(const cf_converg_gen * approx);
 
     /*
      * Free the approximation
      */
-    void (*free)(cf_approx * approx);
+    void (*free)(cf_converg_gen * approx);
 
     /*
      * Make a new copy of this approximation
      */
-    cf_approx * (*copy)(const cf_approx * approx);
+    cf_converg_gen * (*copy)(const cf_converg_gen * approx);
 };
 
-struct _cf_approx {
+struct _cf_converg_gen {
     /* Class definition of a rational approximation of CF */
-    cf_approx_class * object_class;
+    cf_converg_gen_class * object_class;
 };
 
 /*
@@ -540,7 +546,7 @@ struct _cf_approx {
  *
  * Free by `cf_free()' helper macro.
  */
-cf_approx * cf_approx_create(const cf * c);
+cf_converg_gen * cf_converg_gen_create(const cf * c);
 
 
 #if defined (__cplusplus)

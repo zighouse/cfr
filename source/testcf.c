@@ -206,7 +206,7 @@ static void test_case9(void)
 static void test_case10(void)
 {
     cf *c;
-    cf_approx *s;
+    cf_converg_gen *s;
     long long numbers[4] = {1, 1, 3, 2};
 
     printf("case10: x = 1, 1, 3, 2: \n");
@@ -215,20 +215,20 @@ static void test_case10(void)
     //c = cf_create_from_fraction((fraction){16, 9});
     c = cf_create_from_terms(numbers,
                              sizeof(numbers)/sizeof(numbers[0]));
-    s = cf_approx_create(c);
+    s = cf_converg_gen_create(c);
 
     while (!cf_is_finished(s))
     {
-        cf_approx_term term = cf_next_term(s);
+        cf_converg_term term = cf_next_term(s);
         if (term.lower_error == LLONG_MAX)
         {
             printf("\t%lld\t%lld/%lld\t0\n",
-                   term.ai, term.rational.n, term.rational.d);
+                   term.ai, term.convergent.n, term.convergent.d);
         }
         else
         {
             printf("\t%lld\t%lld/%lld\t(%lld/%lld,%lld/%lld)\n",
-                   term.ai, term.rational.n, term.rational.d,
+                   term.ai, term.convergent.n, term.convergent.d,
                    1ll, term.lower_error,
                    1ll, term.upper_error);
         }
@@ -348,7 +348,7 @@ static void test_case13(void)
 {
     int limit, i;
     cf  *c = cf_create_from_pi();
-    cf_gen * gen = cf_gen_create_dec(c);
+    cf_digit_gen * gen = cf_digit_gen_create_dec(c);
 
     printf("case13: pi = ");
     limit = 100;
@@ -390,14 +390,14 @@ static void test_case15(void)
 {
     const char * pi = "3.141592653589793238462643383279502884197169399";
     cf  *c;
-    cf_gen * gen;
+    cf_digit_gen * gen;
     int i;
 
     printf("case15: pi = %s\n", pi);
 
     printf("cf(pi):");
     c = cf_create_from_float_str(pi);
-    gen = cf_gen_create_dec(c);
+    gen = cf_digit_gen_create_dec(c);
     while (!cf_is_finished(c))
     {
         printf(" %lld", cf_next_term(c));

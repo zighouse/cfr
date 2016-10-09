@@ -5,21 +5,21 @@
 #include "cf.h"
 #include "common.h"
 
-typedef struct _cf_gen_dec cf_gen_dec;
-struct _cf_gen_dec {
-    cf_gen base;
+typedef struct _cf_digit_gen_dec cf_digit_gen_dec;
+struct _cf_digit_gen_dec {
+    cf_digit_gen base;
     mpz_t a, b, c, d;
     cf * x;
 };
 
 static
-int cf_gen_dec_next_term(cf_gen *gen)
+int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
 {
     unsigned int limit = UINT_MAX;
     mpz_t i0, i1, a, b, c, t1, t2, t3, t4;
     long long p;
     int result = INT_MAX;
-    cf_gen_dec * g = (cf_gen_dec*)gen;
+    cf_digit_gen_dec * g = (cf_digit_gen_dec*)gen;
 
     mpz_inits(i0, i1, a, b, c, t1, t2, t3, t4, NULL);
     while (--limit)
@@ -106,40 +106,40 @@ EXIT_FUNC:
 }
 
 static
-int cf_gen_dec_is_finished(const cf_gen * gen)
+int cf_digit_gen_dec_is_finished(const cf_digit_gen * gen)
 {
-    const cf_gen_dec * g = (const cf_gen_dec *)gen;
+    const cf_digit_gen_dec * g = (const cf_digit_gen_dec *)gen;
     return (mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0)
         || (mpz_sgn(g->a) == 0 && mpz_sgn(g->b) == 0);
 }
 
 static
-void cf_gen_dec_free(cf_gen *gen)
+void cf_digit_gen_dec_free(cf_digit_gen *gen)
 {
-    cf_gen_dec * g = (cf_gen_dec*)gen;
+    cf_digit_gen_dec * g = (cf_digit_gen_dec*)gen;
     cf_free(g->x);
     mpz_clears(g->a, g->b, g->c, g->d, NULL);
     free(g);
 }
 
 static
-cf_gen * cf_gen_dec_copy(const cf_gen * gen)
+cf_digit_gen * cf_digit_gen_dec_copy(const cf_digit_gen * gen)
 {
-    const cf_gen_dec * g = (const cf_gen_dec *)gen;
-    return cf_gen_create_dec(g->x);
+    const cf_digit_gen_dec * g = (const cf_digit_gen_dec *)gen;
+    return cf_digit_gen_create_dec(g->x);
 }
 
-static cf_gen_class _cf_gen_dec_class = {
-    cf_gen_dec_next_term,
-    cf_gen_dec_is_finished,
-    cf_gen_dec_free,
-    cf_gen_dec_copy
+static cf_digit_gen_class _cf_digit_gen_dec_class = {
+    cf_digit_gen_dec_next_term,
+    cf_digit_gen_dec_is_finished,
+    cf_digit_gen_dec_free,
+    cf_digit_gen_dec_copy
 };
 
-cf_gen * cf_gen_create_dec(const cf * x)
+cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
 {
-    cf_gen_dec * g =
-        (cf_gen_dec*)malloc(sizeof(cf_gen_dec));
+    cf_digit_gen_dec * g =
+        (cf_digit_gen_dec*)malloc(sizeof(cf_digit_gen_dec));
 
     if (!g)
         return NULL;
@@ -149,6 +149,6 @@ cf_gen * cf_gen_create_dec(const cf * x)
     mpz_init_set_ui(g->c, 0u);
     mpz_init_set_ui(g->d, 1u);
     g->x = cf_copy(x);
-    g->base.object_class = &_cf_gen_dec_class;
+    g->base.object_class = &_cf_digit_gen_dec_class;
     return &g->base;
 }

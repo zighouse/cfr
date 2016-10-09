@@ -26,19 +26,19 @@ typedef struct _settings settings;
  * gcd - gcd or 0 if is approximation.
  * data - opaque user data
  */
-typedef void(*cfrcb)(cf_approx_term * t, long long gcd, void * data);
+typedef void(*cfrcb)(cf_converg_term * t, long long gcd, void * data);
 
 static int cfr(cf * x, long long gcd, settings *limits, cfrcb print, void * data)
 {
-    cf_approx * cfap = cf_approx_create(x);
-    cf_approx_term term;
+    cf_converg_gen * cfap = cf_converg_gen_create(x);
+    cf_converg_term term;
     int index = 0;
 
     while (!cf_is_finished(cfap))
     {
         term = cf_next_term(cfap);
-        if (term.rational.n > limits->max_numerator ||
-            term.rational.d > limits->max_denominator ||
+        if (term.convergent.n > limits->max_numerator ||
+            term.convergent.d > limits->max_denominator ||
             ++index > limits->max_index)
         {
             cf_free(cfap);
@@ -91,7 +91,7 @@ static void help(char * name)
 }
 
 struct cfstep {
-    cf_approx_term t;
+    cf_converg_term t;
     long long gcd;
     struct cfstep * next;
     struct cfstep * prev;
@@ -109,7 +109,7 @@ struct context {
     struct cfstep * steps;
 };
 
-static void cfrcb_print_verb(cf_approx_term *t, long long gcd, void * data)
+static void cfrcb_print_verb(cf_converg_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     // columns: simp, ai, error or gcd
@@ -118,24 +118,24 @@ static void cfrcb_print_verb(cf_approx_term *t, long long gcd, void * data)
         if (ctx->is_float)
         { 
             printf("%lld/%lld %lld (err = 0)\n",
-                   t->rational.n, t->rational.d, t->ai);
+                   t->convergent.n, t->convergent.d, t->ai);
         }
         else
         {
             printf("%lld/%lld %lld gcd=%lld\n",
-                   t->rational.n, t->rational.d, t->ai, gcd);
+                   t->convergent.n, t->convergent.d, t->ai, gcd);
         }
     }
     else
     {
         printf("%lld/%lld %lld (1/%lld < err < 1/%lld)\n",
-               t->rational.n, t->rational.d, t->ai,
+               t->convergent.n, t->convergent.d, t->ai,
                t->lower_error, t->upper_error);
     }
     ++ctx->index;
 }
 
-static void cfrcb_collect_steps(cf_approx_term *t, long long gcd, void * data)
+static void cfrcb_collect_steps(cf_converg_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     struct cfstep * step = (struct cfstep*)malloc(sizeof(struct cfstep));
@@ -164,8 +164,8 @@ static void print_welformed(void * data)
     }
 
     // get max field length
-    field_len[0] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.rational.n);
-    field_len[1] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.rational.d);
+    field_len[0] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.convergent.n);
+    field_len[1] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.convergent.d);
     field_len[2] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.ai);
     
     // reorder the list
@@ -202,8 +202,8 @@ static void print_welformed(void * data)
                      head->t.lower_error, head->t.upper_error);
         }
         printf("%*lld / %-*lld  %*lld  %s\n",
-               field_len[0], head->t.rational.n, 
-               field_len[1], head->t.rational.d,
+               field_len[0], head->t.convergent.n, 
+               field_len[1], head->t.convergent.d,
                field_len[2], head->t.ai,
                buf);
     }
@@ -276,14 +276,14 @@ static void print_welformed_cont(void *data)
     free(fields);
 }
 
-static void cfrcb_accept_simp(cf_approx_term *t, long long gcd, void * data)
+static void cfrcb_accept_simp(cf_converg_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     ctx->steps[0].t = *t;
     ++ctx->index;
 }
 
-static void cfrcb_print_cont(cf_approx_term *t, long long gcd, void * data)
+static void cfrcb_print_cont(cf_converg_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
     printf(ctx->index++ ? " %lld" : "%lld", t->ai);
@@ -311,7 +311,7 @@ static void print_report(int argc, char ** argv, void *data)
         printf("    GCD is not available.\n");
     }
     printf("    Simple fraction = %lld / %lld\n",
-           ctx->steps->t.rational.n, ctx->steps->t.rational.d);
+           ctx->steps->t.convergent.n, ctx->steps->t.convergent.d);
 
     printf("\nContinued fraction:\n");
     print_welformed_cont(ctx);
@@ -566,7 +566,7 @@ int main(int argc, char ** argv)
             fraction f;
             ctx.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
             cfr(ctx.x, 0, &ctx.limits, cfrcb_accept_simp, &ctx);
-            f = ctx.steps->t.rational;
+            f = ctx.steps->t.convergent;
             if (ctx.is_welformed)
             {
                 printf("%lld / %lld\n", f.n, f.d);

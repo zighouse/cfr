@@ -4,9 +4,9 @@
 
 #include "cf.h"
 
-typedef struct _cf_approx_priv cf_approx_priv;
-struct _cf_approx_priv {
-    cf_approx base;
+typedef struct _cf_converg_gen_priv cf_converg_gen_priv;
+struct _cf_converg_gen_priv {
+    cf_converg_gen base;
     cf *c;
     long long m[4];
     long long ai[2];
@@ -15,10 +15,10 @@ struct _cf_approx_priv {
 };
 
 static
-cf_approx_term cf_approx_next_term(cf_approx * approx)
+cf_converg_term cf_converg_gen_next_term(cf_converg_gen * approx)
 {
-    cf_approx_priv *s = (cf_approx_priv*)approx;
-    cf_approx_term result = {LLONG_MAX};
+    cf_converg_gen_priv *s = (cf_converg_gen_priv*)approx;
+    cf_converg_term result = {LLONG_MAX};
 
     if (s->finished)
         return result;
@@ -37,7 +37,7 @@ cf_approx_term cf_approx_next_term(cf_approx * approx)
         s->m[1] = s->s[s->idx].d;
 
         result.ai = s->ai[!s->idx];
-        result.rational = s->s[!s->idx];
+        result.convergent = s->s[!s->idx];
         result.lower_error = s->s[!s->idx].d*(s->s[0].d+s->s[1].d);
         result.upper_error = s->s[0].d*s->s[1].d;
         return result;
@@ -46,7 +46,7 @@ cf_approx_term cf_approx_next_term(cf_approx * approx)
     s->finished = 1;
 
     result.ai = s->ai[s->idx];
-    result.rational = s->s[s->idx];
+    result.convergent = s->s[s->idx];
     result.lower_error = LLONG_MAX;
     result.upper_error = LLONG_MAX;
 
@@ -54,40 +54,40 @@ cf_approx_term cf_approx_next_term(cf_approx * approx)
 }
 
 static
-int cf_approx_is_finished(const cf_approx * approx)
+int cf_converg_gen_is_finished(const cf_converg_gen * approx)
 {
-    return ((const cf_approx_priv *)approx)->finished;
+    return ((const cf_converg_gen_priv *)approx)->finished;
 }
 
 static
-void cf_approx_free(cf_approx * s)
+void cf_converg_gen_free(cf_converg_gen * s)
 {
-    cf_free(((cf_approx_priv*)s)->c);
+    cf_free(((cf_converg_gen_priv*)s)->c);
     free(s);
 }
 
 static
-cf_approx * cf_approx_copy(const cf_approx * approx)
+cf_converg_gen * cf_converg_gen_copy(const cf_converg_gen * approx)
 {
-    cf_approx_priv * s = (cf_approx_priv*) malloc(sizeof(cf_approx_priv));
+    cf_converg_gen_priv * s = (cf_converg_gen_priv*) malloc(sizeof(cf_converg_gen_priv));
     if (!s)
         return NULL;
 
-    memcpy(s, approx, sizeof(cf_approx_priv));
-    s->c = cf_copy(((const cf_approx_priv *)approx)->c);
+    memcpy(s, approx, sizeof(cf_converg_gen_priv));
+    s->c = cf_copy(((const cf_converg_gen_priv *)approx)->c);
     return &s->base;
 }
 
-static cf_approx_class _cf_approx_priv_class = {
-    cf_approx_next_term,
-    cf_approx_is_finished,
-    cf_approx_free,
-    cf_approx_copy
+static cf_converg_gen_class _cf_converg_gen_priv_class = {
+    cf_converg_gen_next_term,
+    cf_converg_gen_is_finished,
+    cf_converg_gen_free,
+    cf_converg_gen_copy
 };
 
-cf_approx * cf_approx_create(const cf * c)
+cf_converg_gen * cf_converg_gen_create(const cf * c)
 {
-    cf_approx_priv * s = (cf_approx_priv*) malloc(sizeof(cf_approx_priv));
+    cf_converg_gen_priv * s = (cf_converg_gen_priv*) malloc(sizeof(cf_converg_gen_priv));
     if (!s)
         return NULL;
     s->m[0] = s->m[3] = 1ll;
@@ -102,6 +102,6 @@ cf_approx * cf_approx_create(const cf * c)
     s->m[0] = s->s[s->idx].n;
     s->m[1] = s->s[s->idx].d;
     s->finished = cf_is_finished(s->c);
-    s->base.object_class = &_cf_approx_priv_class;
+    s->base.object_class = &_cf_converg_gen_priv_class;
     return &s->base;
 }
