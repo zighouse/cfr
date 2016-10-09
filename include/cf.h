@@ -501,7 +501,7 @@ typedef struct _cf_converg_gen_class cf_converg_gen_class;
  * A term of rational approximation of CF.
  */
 typedef struct _cf_converg_term {
-    long long ai;           /* CF term */
+    long long coef;         /* coeffient of CF on term */
     fraction  convergent;   /* convergent or rational approximation on
                                this term */
                             /* error range of convergent:

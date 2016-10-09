@@ -223,12 +223,12 @@ static void test_case10(void)
         if (term.lower_error == LLONG_MAX)
         {
             printf("\t%lld\t%lld/%lld\t0\n",
-                   term.ai, term.convergent.n, term.convergent.d);
+                   term.coef, term.convergent.n, term.convergent.d);
         }
         else
         {
             printf("\t%lld\t%lld/%lld\t(%lld/%lld,%lld/%lld)\n",
-                   term.ai, term.convergent.n, term.convergent.d,
+                   term.coef, term.convergent.n, term.convergent.d,
                    1ll, term.lower_error,
                    1ll, term.upper_error);
         }

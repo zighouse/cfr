@@ -36,7 +36,7 @@ cf_converg_term cf_converg_gen_next_term(cf_converg_gen * approx)
         s->m[0] = s->s[s->idx].n;
         s->m[1] = s->s[s->idx].d;
 
-        result.ai = s->ai[!s->idx];
+        result.coef = s->ai[!s->idx];
         result.convergent = s->s[!s->idx];
         result.lower_error = s->s[!s->idx].d*(s->s[0].d+s->s[1].d);
         result.upper_error = s->s[0].d*s->s[1].d;
@@ -45,7 +45,7 @@ cf_converg_term cf_converg_gen_next_term(cf_converg_gen * approx)
 
     s->finished = 1;
 
-    result.ai = s->ai[s->idx];
+    result.coef = s->ai[s->idx];
     result.convergent = s->s[s->idx];
     result.lower_error = LLONG_MAX;
     result.upper_error = LLONG_MAX;

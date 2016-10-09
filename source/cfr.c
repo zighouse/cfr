@@ -118,18 +118,18 @@ static void cfrcb_print_verb(cf_converg_term *t, long long gcd, void * data)
         if (ctx->is_float)
         { 
             printf("%lld/%lld %lld (err = 0)\n",
-                   t->convergent.n, t->convergent.d, t->ai);
+                   t->convergent.n, t->convergent.d, t->coef);
         }
         else
         {
             printf("%lld/%lld %lld gcd=%lld\n",
-                   t->convergent.n, t->convergent.d, t->ai, gcd);
+                   t->convergent.n, t->convergent.d, t->coef, gcd);
         }
     }
     else
     {
         printf("%lld/%lld %lld (1/%lld < err < 1/%lld)\n",
-               t->convergent.n, t->convergent.d, t->ai,
+               t->convergent.n, t->convergent.d, t->coef,
                t->lower_error, t->upper_error);
     }
     ++ctx->index;
@@ -166,7 +166,7 @@ static void print_welformed(void * data)
     // get max field length
     field_len[0] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.convergent.n);
     field_len[1] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.convergent.d);
-    field_len[2] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.ai);
+    field_len[2] = snprintf(buf, sizeof buf, "%lld", ctx->steps->t.coef);
     
     // reorder the list
     head = NULL;
@@ -177,7 +177,7 @@ static void print_welformed(void * data)
         ctx->steps = ctx->steps->next;
         t->next = head;
         head = t;
-        len = snprintf(buf, sizeof buf, "%lld", t->t.ai);
+        len = snprintf(buf, sizeof buf, "%lld", t->t.coef);
         field_len[2] = field_len[2] > len ? field_len[2] : len;
     }
     ctx->steps = head;
@@ -204,7 +204,7 @@ static void print_welformed(void * data)
         printf("%*lld / %-*lld  %*lld  %s\n",
                field_len[0], head->t.convergent.n, 
                field_len[1], head->t.convergent.d,
-               field_len[2], head->t.ai,
+               field_len[2], head->t.coef,
                buf);
     }
 }
@@ -239,7 +239,7 @@ static void print_welformed_cont(void *data)
         struct range * p;
         char buf[100];
 
-        field->length = snprintf(buf, sizeof buf, "%lld", step->t.ai);
+        field->length = snprintf(buf, sizeof buf, "%lld", step->t.coef);
         field->text = strdup(buf);
         field->offset = 0;
 
@@ -286,7 +286,7 @@ static void cfrcb_accept_simp(cf_converg_term *t, long long gcd, void * data)
 static void cfrcb_print_cont(cf_converg_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
-    printf(ctx->index++ ? " %lld" : "%lld", t->ai);
+    printf(ctx->index++ ? " %lld" : "%lld", t->coef);
 }
 
 static void print_report(int argc, char ** argv, void *data)
