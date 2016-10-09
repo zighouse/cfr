@@ -138,6 +138,16 @@ struct _cf {
 #define cf_copy(c)         cf_class(c)->copy(c)
 
 /*
+ * Compares two CF.
+ *
+ * Note for infinite CF, it only compares a finite serials of heading
+ * terms.
+ *
+ * Returns 0 if x == y, -1 if x < y, 1 if x > y
+ */         
+int cf_compare(const cf * x, const cf * y);
+
+/*
  * Create a continued fraction from terms.
  *
  * It copies a new array of terms.
@@ -485,6 +495,13 @@ struct _cf_digit_gen {
  * Free by `cf_free()' helper macro.
  */
 cf_digit_gen * cf_digit_gen_create_dec(const cf * c);
+
+/*
+ * Get decimal string from a CF.
+ *
+ * Free the string.
+ */
+char * cf_get_decimal_str(const cf *c, int max_digits);
 
 /*
  * CF Convergent Generator generates convergants for a CF.

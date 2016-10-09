@@ -111,3 +111,51 @@ long long cf_get_gcd(long long a, long long b)
     cf_free(c);
     return gcd;
 }
+
+int cf_compare(const cf *_x, const cf *_y)
+{
+    const int limit = 100; /* limit terms to compare */
+    int cmp, i = 0;
+    long long a = 0, b = 0;
+    cf * x = cf_copy(_x);
+    cf * y = cf_copy(_y);
+    while (a == b && !cf_is_finished(x) && !cf_is_finished(y) && i < limit)
+    {
+        a = cf_next_term(x);
+        b = cf_next_term(y);
+        ++i;
+    }
+
+    if (a == b)
+    {
+        if ((cf_is_finished(x) && cf_is_finished(y))
+            || (!cf_is_finished(x) && !cf_is_finished(y)))
+        {
+            cmp = 0; // equal
+        }
+        else
+        {
+            if (cf_is_finished(x))
+            {
+                cmp = i ^ 1 ? 1 : -1;
+            }
+            else
+            {
+                cmp = i & 1 ? 1 : -1;
+            }
+        }
+    }
+    else if (a > b)
+    {
+        cmp = i & 1 ? 1 : -1;
+    }
+    else // a < b
+    {
+        cmp = i ^ 1 ? 1 : -1;
+    }
+
+    cf_free(x);
+    cf_free(y);
+
+    return cmp;
+}

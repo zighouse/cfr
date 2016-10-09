@@ -152,3 +152,69 @@ cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
     g->base.object_class = &_cf_digit_gen_dec_class;
     return &g->base;
 }
+
+#include <stdio.h>
+char * cf_get_decimal_str(const cf *c, int max_digits)
+{
+    cf_digit_gen * gen;
+    char buf[4096], *p, *result;
+    int size, count, digit;
+    int realloced = 0;
+
+    p = buf;
+    size = sizeof(buf);
+    count = 0;
+    realloced = 0;
+
+    gen = cf_digit_gen_create_dec(c);
+    while (max_digits > 0 && !cf_is_finished(gen))
+    {
+        int chars;
+        digit = cf_next_term(gen);
+        chars = snprintf(p + count, size - count, "%d", digit);
+        if (!count && !cf_is_finished(gen))
+        {
+            snprintf(p + count + chars, size - count - chars, ".");
+            ++count;
+        }
+        count += chars;
+        max_digits -= chars;
+        // reallocate new buffer to contain the too long string.
+        if (count > size - 2)
+        {
+            int new_size = size << 1;
+            char * new_buf = (char*)malloc(new_size);
+            if (!new_buf)
+            {
+                // failed.
+                break;
+            }
+            memcpy(new_buf, p, count);
+            if (realloced)
+            {
+                free(p);
+            }
+            p = new_buf;
+            size = new_size;
+            realloced = 1;
+        }
+    }
+    cf_free(gen);
+
+    if (count)
+    {
+        p[count] = '\0';
+    }
+    else
+    {
+        strcpy(p, "NAN");
+    }
+
+    result = strdup(p);
+    if (realloced)
+    {
+        free(p);
+    }
+
+    return result;
+}
