@@ -37,7 +37,7 @@ $(LIB_DIR)/libcf.a: $(OBJS)
 	mkdir -p $(LIB_DIR)
 	ar Ur $@ $^ 
 
-$(BIN_DIR)/testcf: source/testcf.c $(LIBS)
+$(BIN_DIR)/testcf: test/testcf.c $(LIBS)
 	mkdir -p $(BIN_DIR)
 	gcc $(OPTS) -o $@ $< -L$(LIB_DIR) -lcf $(LDFLAGS) $(CFLAGS)
 
