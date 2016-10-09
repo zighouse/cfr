@@ -85,7 +85,7 @@ struct _cf_class {
     int (*is_finished)(const cf * c);
 
     /*
-     * Free a continued fraction.
+     * Need to be freed a continued fraction.
      */
     void (*free)(cf *c);
 
@@ -166,7 +166,7 @@ int cf_compare(const cf * x, const cf * y);
  * \param terms: a0, a1, a2, ..., an.
  * \param size: n + 1.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_terms(const long long * terms,
                           unsigned int size);
@@ -179,7 +179,7 @@ cf * cf_create_from_terms(const long long * terms,
  *     cf = ---
  *           d
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_fraction(fraction f);
 
@@ -191,7 +191,7 @@ long long cf_get_gcd(long long a, long long b);
 /*
  * Create a continued fraction from a float point number.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_float(double d);
 
@@ -199,9 +199,16 @@ cf * cf_create_from_float(double d);
  * Create a continued fraction from a float pointer number expressed in
  * a string.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
-cf * cf_create_from_float_str(const char * float_str);
+cf * cf_create_from_string_float(const char * float_str);
+
+/*
+ * Get decimal string from a CF.
+ *
+ * The returned string need to be freed.
+ */
+char * cf_convert_to_string_float(const cf *c, int max_digits);
 
 /*
  * Create a continued fraction from homograhic function of another
@@ -254,7 +261,7 @@ cf * cf_create_from_float_str(const char * float_str);
  *     cf = ------
  *          0x + 1
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_homographic(const cf * x,
                                 long long a, long long b,
@@ -294,7 +301,7 @@ cf * cf_create_from_homographic(const cf * x,
  *     cf = -----------------
  *          0xy + 0x + 1y + 0
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_bihomographic(const cf * x, const cf * y,
                                   long long a, long long b,
@@ -307,7 +314,7 @@ cf * cf_create_from_bihomographic(const cf * x, const cf * y,
  *
  * Implemented by using function `gcf_create_from_pi()'.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_pi(void);
 
@@ -379,7 +386,7 @@ struct _gcf {
  * Often, the first term's first number is 1.
  * If GCF have no integral part, the first term's second number is 0.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 gcf * gcf_create_from_pairs(const number_pair * arr,
                             unsigned int size);
@@ -404,7 +411,7 @@ gcf * gcf_create_from_pairs(const number_pair * arr,
  * There are multiple expression of pi in GCF format. This GCF
  * expression is not the best one.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 gcf * gcf_create_from_pi(void);
 
@@ -427,9 +434,9 @@ gcf * gcf_create_from_pi(void);
  *                                  0 + ---------
  *                                      b3 + ...
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
-gcf * gcf_create_from_float_str(const char * float_str);
+gcf * gcf_create_from_string_float(const char * float_str);
 
 /*
  * Create a continued fraction from homograhic function by input
@@ -439,7 +446,7 @@ gcf * gcf_create_from_float_str(const char * float_str);
  *     cf = ------
  *          cx + d
  *  
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf * cf_create_from_ghomo(const gcf * x,
                           long long a, long long b,
@@ -471,7 +478,7 @@ struct _cf_digit_gen_class {
     int (*is_finished)(const cf_digit_gen * gen);
 
     /*
-     * Free a CF generator.
+     * Need to be freed a CF generator.
      */
     void (*free)(cf_digit_gen * gen);
 
@@ -492,16 +499,9 @@ struct _cf_digit_gen {
 /*
  * Create a CF digit generator for decimal.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf_digit_gen * cf_digit_gen_create_dec(const cf * c);
-
-/*
- * Get decimal string from a CF.
- *
- * Free the string.
- */
-char * cf_get_decimal_str(const cf *c, int max_digits);
 
 /*
  * CF Convergent Generator generates convergants for a CF.
@@ -543,7 +543,7 @@ struct _cf_converg_gen_class {
     int (*is_finished)(const cf_converg_gen * approx);
 
     /*
-     * Free the approximation
+     * Need to be freed the approximation
      */
     void (*free)(cf_converg_gen * approx);
 
@@ -561,7 +561,7 @@ struct _cf_converg_gen {
 /*
  * Create a rational approximation of CF.
  *
- * Free by `cf_free()' helper macro.
+ * Need to be freed by `cf_free()' helper macro.
  */
 cf_converg_gen * cf_converg_gen_create(const cf * c);
 

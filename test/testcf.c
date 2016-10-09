@@ -398,7 +398,7 @@ static void test_case15(void)
     printf("case15: pi = %s\n", pi);
 
     printf("cf(pi):");
-    c = cf_create_from_float_str(pi);
+    c = cf_create_from_string_float(pi);
     gen = cf_digit_gen_create_dec(c);
     while (!cf_is_finished(c))
     {

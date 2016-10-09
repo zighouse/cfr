@@ -154,7 +154,7 @@ cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
 }
 
 #include <stdio.h>
-char * cf_get_decimal_str(const cf *c, int max_digits)
+char * cf_convert_to_string_float(const cf *c, int max_digits)
 {
     cf_digit_gen * gen;
     char buf[4096], *p, *result;

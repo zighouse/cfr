@@ -159,7 +159,7 @@ static gcf_class _gcf_float_str_class = {
     _gcf_float_str_copy
 };
 
-gcf * gcf_create_from_float_str(const char * float_str)
+gcf * gcf_create_from_string_float(const char * float_str)
 {
     gcf_float_str * gfs;
     gfs = (gcf_float_str*)malloc(sizeof(gcf_float_str));
@@ -175,12 +175,12 @@ gcf * gcf_create_from_float_str(const char * float_str)
     return &gfs->base;
 }
 
-cf * cf_create_from_float_str(const char * float_str)
+cf * cf_create_from_string_float(const char * float_str)
 {
     gcf * g;
     cf * c;
 
-    g = gcf_create_from_float_str(float_str);
+    g = gcf_create_from_string_float(float_str);
     if (!g)
     {
         return NULL;

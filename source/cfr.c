@@ -471,7 +471,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         ctx->is_float = 0;
         if (strchr(numerator, '.'))
         {
-            cfx = cf_create_from_float_str(numerator);
+            cfx = cf_create_from_string_float(numerator);
             ctx->is_float = 1;
         }
         else
@@ -483,7 +483,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         {
             if (strchr(denominator, '.'))
             {
-                cfy = cf_create_from_float_str(denominator);
+                cfy = cf_create_from_string_float(denominator);
                 if (ctx->is_float)
                 {
                     ctx->x = cf_create_from_bihomographic(cfx, cfy, 0, 1, 0, 0, 0, 0, 1, 0);
