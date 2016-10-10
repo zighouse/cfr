@@ -353,6 +353,30 @@ static void test_case16(void)
     printf("case16: gcd(%lld, %lld) = %lld\n", a, b, cf_get_gcd(a, b));
 }
 
+static int test_case_convert_string_float(void)
+{
+    long long numbers[] = {-2};
+    cf *c = cf_create_from_terms(numbers, 1);
+    char * cf, * fl;
+    cf = cf_convert_to_string_canonical(c, 20);
+    fl = cf_convert_to_string_float(c, 20);
+    printf("cf: %s\n", cf);
+    printf("fl: %s\n", fl);
+    free(cf);
+    free(fl);
+    cf_free(c);
+    return 0;
+}
+
+#define TEST(case_name) \
+{ \
+    printf("CASE: " #case_name); \
+    if (test_case_ ##case_name () == 0) \
+        printf("OK\n"); \
+    else \
+        printf("FAIL\n"); \
+}
+
 int main(void)
 {
     test_case1();
@@ -371,5 +395,7 @@ int main(void)
     test_case14();
     test_case15();
     test_case16();
+
+    TEST(convert_string_float);
     return 0;
 }

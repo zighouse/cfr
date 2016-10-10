@@ -34,7 +34,7 @@ static long long homographic_next_term(cf *c)
             if (h->c == 0ll && h->d == 0ll)
                 return LLONG_MAX;
 
-            if (i1 < 0)
+            if (i1 < 0 && !cf_is_finished(h->x))
                 --i1;
 
             h->a = h->c;

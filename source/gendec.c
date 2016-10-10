@@ -62,7 +62,7 @@ int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
                 goto EXIT_FUNC;
             }
 
-            if (mpz_sgn(i1) < 0)
+            if (mpz_sgn(i1) < 0 && !cf_is_finished(g->x))
             {
                 mpz_sub_ui(i1, i1, 1u);
             }
@@ -76,6 +76,10 @@ int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
             mpz_mul_ui(g->a, t3, 10u);
             mpz_mul_ui(g->b, t4, 10u);
             result = mpz_get_si(i1);
+            if (mpz_sgn(i1) < 0)
+            {
+                result = -result;
+            }
             goto EXIT_FUNC;
         }
 
