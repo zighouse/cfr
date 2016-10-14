@@ -14,10 +14,15 @@ unsigned long long mpz_get_ull(mpz_t z)
 
 void mpz_set_ll(mpz_t z, long long sll)
 {
-    mpz_import(z, 1, -1, sizeof sll, 0, 0, &sll);
     if (sll < 0)
     {
-        z->_mp_size = -z->_mp_size;
+        sll = -sll;
+        mpz_import(z, 1, -1, sizeof sll, 0, 0, &sll);
+        mpz_neg(z, z);
+    }
+    else
+    {
+        mpz_import(z, 1, -1, sizeof sll, 0, 0, &sll);
     }
 }
 
