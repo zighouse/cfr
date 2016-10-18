@@ -172,6 +172,16 @@ cf * cf_create_from_terms(const long long * terms,
                           unsigned int size);
 
 /*
+ * Create a continued fraction from terms of va-arg list as int type.
+ */
+cf * cf_create_from_terms_i(unsigned int number_of_int, ...);
+
+/*
+ * Create a continued fraction from terms of va-arg list as long long type.
+ */
+cf * cf_create_from_terms_ll(unsigned int number_of_longlong, ...);
+
+/*
  * Create a continued fraction from a fraction, which is the final value
  * of it.
  *

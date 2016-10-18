@@ -62,3 +62,64 @@ cf * cf_create_from_terms(const long long * arr, unsigned int size)
     n->base.object_class = &_numbers_class;
     return &n->base;
 }
+
+#include <stdarg.h>
+cf * cf_create_from_terms_i(unsigned int number_of_int, ...)
+{
+    cf * c;
+    long long *arr = (long long*)malloc(sizeof(long long) * number_of_int);
+    unsigned int i;
+    va_list ap;
+
+    if (number_of_int == 0 || number_of_int > 1024)
+    {
+        return NULL;
+    }
+
+    if (!arr)
+    {
+        return NULL;
+    }
+
+    va_start(ap, number_of_int);
+    for (i = 0; i < number_of_int; ++i)
+    {
+        arr[i] = (long long)va_arg(ap, int);
+    }
+    va_end(ap);
+
+    c = cf_create_from_terms(arr, number_of_int);
+    free(arr);
+
+    return c;
+}
+
+cf * cf_create_from_terms_ll(unsigned int number_of_longlong, ...)
+{
+    cf * c;
+    long long *arr = (long long*)malloc(sizeof(long long) * number_of_longlong);
+    unsigned int i;
+    va_list ap;
+
+    if (number_of_longlong == 0 || number_of_longlong > 1024)
+    {
+        return NULL;
+    }
+
+    if (!arr)
+    {
+        return NULL;
+    }
+
+    va_start(ap, number_of_longlong);
+    for (i = 0; i < number_of_longlong; ++i)
+    {
+        arr[i] = va_arg(ap, long long);
+    }
+    va_end(ap);
+
+    c = cf_create_from_terms(arr, number_of_longlong);
+    free(arr);
+
+    return c;
+}

@@ -391,10 +391,8 @@ static int test_case_gcd(void)
 
 static int test_case_convert_string_canonical(void)
 {
-    const long long numbers[] = {-1, 2, 3, 4, 5, 6};
-
     {
-        cf *c = cf_create_from_terms(&numbers[1], 1);
+        cf *c = cf_create_from_terms_i(1, 2);
         char * str = cf_convert_to_string_canonical(c, 10);
 
         ASSERT( strcmp(str, "[2]" ) == 0 );
@@ -404,7 +402,7 @@ static int test_case_convert_string_canonical(void)
     }
 
     {
-        cf *c = cf_create_from_terms(&numbers[1], 2);
+        cf *c = cf_create_from_terms_i(2, 2, 3);
         char * str = cf_convert_to_string_canonical(c, 10);
 
         ASSERT( strcmp(str, "[2; 3]" ) == 0 );
@@ -414,7 +412,7 @@ static int test_case_convert_string_canonical(void)
     }
 
     {
-        cf *c = cf_create_from_terms(&numbers[1], 3);
+        cf *c = cf_create_from_terms_i(3, 2, 3, 4);
         char * str = cf_convert_to_string_canonical(c, 10);
 
         ASSERT( strcmp(str, "[2; 3, 4]" ) == 0 );
@@ -424,7 +422,7 @@ static int test_case_convert_string_canonical(void)
     }
 
     {
-        cf *c = cf_create_from_terms(&numbers[1], 5);
+        cf *c = cf_create_from_terms_i(5, 2, 3, 4, 5, 6);
         char * str = cf_convert_to_string_canonical(c, 4);
 
         ASSERT( strcmp(str, "[2; 3, 4, 5, ...]" ) == 0 );
@@ -434,7 +432,7 @@ static int test_case_convert_string_canonical(void)
     }
 
     {
-        cf *c = cf_create_from_terms(numbers, 1);
+        cf *c = cf_create_from_terms_i(1, -1);
         char * str = cf_convert_to_string_canonical(c, 10);
 
         ASSERT( strcmp(str, "[-1]" ) == 0 );
@@ -444,7 +442,7 @@ static int test_case_convert_string_canonical(void)
     }
 
     {
-        cf *c = cf_create_from_terms(numbers, 2);
+        cf *c = cf_create_from_terms_i(2, -1, 2);
         char * str = cf_convert_to_string_canonical(c, 10);
 
         ASSERT( strcmp(str, "[-1; 2]" ) == 0 );
@@ -457,10 +455,8 @@ static int test_case_convert_string_canonical(void)
 
 static int test_case_convert_string_float(void)
 {
-    long long numbers[] = {-1, 2, 3, 4, 5, 6};
-
     {
-        cf *c = cf_create_from_terms(&numbers[1], 1);
+        cf *c = cf_create_from_terms_i(1, 2);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "2" ) == 0 );
@@ -470,7 +466,7 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c = cf_create_from_terms(&numbers[1], 2);
+        cf *c = cf_create_from_terms_i(2, 2, 3);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "2.333333333..." ) == 0 );
@@ -480,7 +476,7 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c = cf_create_from_terms(&numbers[1], 3);
+        cf *c = cf_create_from_terms_i(3, 2, 3, 4);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "2.307692307..." ) == 0 );
@@ -490,7 +486,7 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c = cf_create_from_terms(&numbers[1], 5);
+        cf *c = cf_create_from_terms_i(5, 2, 3, 4, 5, 6);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "2.308788598..." ) == 0 );
@@ -500,7 +496,7 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c = cf_create_from_terms(numbers, 1);
+        cf *c = cf_create_from_terms_i(1, -1);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "-1" ) == 0 );
@@ -510,7 +506,7 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c = cf_create_from_terms(numbers, 2);
+        cf *c = cf_create_from_terms_i(2, -1, 2);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "-0.5" ) == 0 );
@@ -520,10 +516,8 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c;
-        char * fl;
-        c = cf_create_from_terms(numbers, 3);
-        fl = cf_convert_to_string_float(c, 10);
+        cf *c = cf_create_from_terms_i(3, -1, 2, 3);
+        char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "-0.571428571..." ) == 0 );
 
@@ -532,7 +526,7 @@ static int test_case_convert_string_float(void)
     }
 
     {
-        cf *c = cf_create_from_terms(numbers, 4);
+        cf *c = cf_create_from_terms_i(4, -1, 2, 3, 4);
         char * fl = cf_convert_to_string_float(c, 10);
 
         ASSERT( strcmp(fl, "-0.566666666..." ) == 0 );
