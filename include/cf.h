@@ -496,6 +496,11 @@ struct _cf_digit_gen_class {
      * `cf_free()' helper macro.
      */
     cf_digit_gen * (*copy)(const cf_digit_gen * gen);
+
+    /*
+     * Whether the value is negative.
+     */
+    int (*is_negative)(const cf_digit_gen * gen);
 };
 
 struct _cf_digit_gen {

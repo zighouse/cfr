@@ -1,8 +1,31 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <limits.h>
 
 #include "cf.h"
+
+#define FORMAT_FAIL  "[1m[31m"
+#define FORMAT_OK    "[1m[32m"
+#define FORMAT_END   "[0m"
+
+#define ASSERT(exp)                                                    \
+{                                                                      \
+    if (exp) {}                                                        \
+    else {                                                             \
+        printf("[" FORMAT_FAIL "FAILED" FORMAT_END "]\n");             \
+        fprintf(stderr, "%s:%d: %s: Assertion `%s' failed.\n",         \
+               __FILE__, __LINE__, __func__, #exp);                    \
+        return 1;                                                      \
+    }                                                                  \
+}
+
+#define TEST(case_name)                                                \
+{                                                                      \
+    printf("TEST %s: ", #case_name);                                   \
+    if (test_case_ ##case_name () == 0)                                \
+        printf("[" FORMAT_OK "OK" FORMAT_END "]\n");                   \
+}
 
 static void test_case1(void)
 {
@@ -345,36 +368,179 @@ static void test_case15(void)
     cf_free(c);
 }
 
-static void test_case16(void)
+static int test_case_gcd(void)
 {
-    long long a, b;
-    a = 1920;
-    b = 1080;
-    printf("case16: gcd(%lld, %lld) = %lld\n", a, b, cf_get_gcd(a, b));
+    long long a, b, gcd;
+
+    {
+        a = 1920;
+        b = 1080;
+        gcd = cf_get_gcd(a, b);
+        ASSERT( gcd == 120 );
+    }
+
+    {
+        a = -1920;
+        b = 1080;
+        gcd = cf_get_gcd(a, b);
+        ASSERT( gcd == 120 );
+    }
+
+    return 0;
+}
+
+static int test_case_convert_string_canonical(void)
+{
+    const long long numbers[] = {-1, 2, 3, 4, 5, 6};
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 1);
+        char * str = cf_convert_to_string_canonical(c, 10);
+
+        ASSERT( strcmp(str, "[2]" ) == 0 );
+
+        free(str);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 2);
+        char * str = cf_convert_to_string_canonical(c, 10);
+
+        ASSERT( strcmp(str, "[2; 3]" ) == 0 );
+
+        free(str);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 3);
+        char * str = cf_convert_to_string_canonical(c, 10);
+
+        ASSERT( strcmp(str, "[2; 3, 4]" ) == 0 );
+
+        free(str);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 5);
+        char * str = cf_convert_to_string_canonical(c, 4);
+
+        ASSERT( strcmp(str, "[2; 3, 4, 5, ...]" ) == 0 );
+
+        free(str);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(numbers, 1);
+        char * str = cf_convert_to_string_canonical(c, 10);
+
+        ASSERT( strcmp(str, "[-1]" ) == 0 );
+
+        free(str);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(numbers, 2);
+        char * str = cf_convert_to_string_canonical(c, 10);
+
+        ASSERT( strcmp(str, "[-1; 2]" ) == 0 );
+
+        free(str);
+        cf_free(c);
+    }
+    return 0;
 }
 
 static int test_case_convert_string_float(void)
 {
-    long long numbers[] = {-2};
-    cf *c = cf_create_from_terms(numbers, 1);
-    char * cf, * fl;
-    cf = cf_convert_to_string_canonical(c, 20);
-    fl = cf_convert_to_string_float(c, 20);
-    printf("cf: %s\n", cf);
-    printf("fl: %s\n", fl);
-    free(cf);
-    free(fl);
-    cf_free(c);
-    return 0;
-}
+    long long numbers[] = {-1, 2, 3, 4, 5, 6};
 
-#define TEST(case_name) \
-{ \
-    printf("CASE: " #case_name); \
-    if (test_case_ ##case_name () == 0) \
-        printf("OK\n"); \
-    else \
-        printf("FAIL\n"); \
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 1);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "2" ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 2);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "2.333333333..." ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 3);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "2.307692307..." ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(&numbers[1], 5);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "2.308788598..." ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(numbers, 1);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "-1" ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(numbers, 2);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "-0.5" ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c;
+        char * fl;
+        c = cf_create_from_terms(numbers, 3);
+        fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "-0.571428571..." ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+
+    {
+        cf *c = cf_create_from_terms(numbers, 4);
+        char * fl = cf_convert_to_string_float(c, 10);
+
+        ASSERT( strcmp(fl, "-0.566666666..." ) == 0 );
+
+        free(fl);
+        cf_free(c);
+    }
+    return 0;
 }
 
 int main(void)
@@ -394,8 +560,10 @@ int main(void)
     test_case13();
     test_case14();
     test_case15();
-    test_case16();
 
-    TEST(convert_string_float);
+    TEST( gcd );
+    TEST( convert_string_canonical );
+    TEST( convert_string_float );
+
     return 0;
 }

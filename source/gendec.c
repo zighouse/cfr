@@ -10,6 +10,7 @@ typedef struct _cf_digit_gen_dec cf_digit_gen_dec;
 struct _cf_digit_gen_dec {
     cf_digit_gen base;
     mpz_t a, b, c, d;
+    int sgn;
     cf * x;
 };
 
@@ -17,17 +18,17 @@ static
 int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
 {
     unsigned int limit = UINT_MAX;
-    mpz_t i0, i1, a, b, c, t1, t2, t3, t4;
+    mpz_t i0, i1, r0, r1, a, b, c, t1, t2, t3, t4;
     long long p;
     int result = INT_MAX;
     cf_digit_gen_dec * g = (cf_digit_gen_dec*)gen;
 
-    mpz_inits(i0, i1, a, b, c, t1, t2, t3, t4, NULL);
+    mpz_inits(i0, i1, r0, r1, a, b, c, t1, t2, t3, t4, NULL);
     while (--limit)
     {
         if (mpz_sgn(g->c) != 0)
         {
-            mpz_fdiv_q(i1, g->a, g->c);
+            mpz_fdiv_qr(i1, r1, g->a, g->c);
         }
         else
         {
@@ -35,7 +36,7 @@ int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
         }
         if (mpz_sgn(g->d) != 0)
         {
-            mpz_fdiv_q(i0, g->b, g->d);
+            mpz_fdiv_qr(i0, r0, g->b, g->d);
         }
         else
         {
@@ -50,48 +51,62 @@ int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
             // FIXME: try to output one digit `0' after finished.
             if (mpz_sgn(g->c) == 0 && mpz_sgn(g->d) == 0)
             {
-                //result = INT_MAX;
                 result = 0;
                 goto EXIT_FUNC;
             }
 
             if (mpz_sgn(g->a) == 0 && mpz_sgn(g->b) == 0)
             {
-                //result = INT_MAX;
                 result = 0;
                 goto EXIT_FUNC;
             }
 
-            if (mpz_sgn(i1) < 0 && !cf_is_finished(g->x))
-            {
-                mpz_sub_ui(i1, i1, 1u);
-            }
-
-            mpz_mul(t1, i1, g->c);
-            mpz_mul(t2, i1, g->d);
-
-            mpz_sub(t3, a, t1);
-            mpz_sub(t4, b, t2);
-
-            mpz_mul_ui(g->a, t3, 10u);
-            mpz_mul_ui(g->b, t4, 10u);
-            result = mpz_get_si(i1);
             if (mpz_sgn(i1) < 0)
             {
-                result = -result;
+                g->sgn = 1;
             }
+
+            if (mpz_sgn(i1) < 0 && (mpz_sgn(r0) != 0 || mpz_sgn(r1) != 0))
+            {
+                mpz_add_ui(i1, i1, 1u);
+
+                mpz_mul(t1, i1, g->c);
+                mpz_mul(t2, i1, g->d);
+
+                mpz_sub(t3, a, t1);
+                mpz_sub(t4, b, t2);
+
+                mpz_mul_ui(g->a, t3, 10u);
+                mpz_mul_ui(g->b, t4, 10u);
+
+                mpz_neg(g->a, g->a);
+                mpz_neg(g->b, g->b);
+            }
+            else
+            {
+                mpz_mul(t1, i1, g->c);
+                mpz_mul(t2, i1, g->d);
+
+                mpz_sub(t3, a, t1);
+                mpz_sub(t4, b, t2);
+
+                mpz_mul_ui(g->a, t3, 10u);
+                mpz_mul_ui(g->b, t4, 10u);
+            }
+            result = mpz_get_si(i1);
             goto EXIT_FUNC;
         }
 
-        p = cf_next_term(g->x);
-        if (p == LLONG_MAX && cf_is_finished(g->x))
+        if (cf_is_finished(g->x))
         {
             mpz_set(g->b, g->a);
             mpz_set(g->d, g->c);
         }
         else
         {
+            p = cf_next_term(g->x);
             mpz_set_ll(t1, p);
+
             mpz_set(a, g->a);
             mpz_set(b, g->c);
 
@@ -106,7 +121,7 @@ int cf_digit_gen_dec_next_term(cf_digit_gen *gen)
         }
     }
 EXIT_FUNC:
-    mpz_clears(i0, i1, a, b, c, t1, t2, t3, t4, NULL);
+    mpz_clears(i0, i1, r0, r1, a, b, c, t1, t2, t3, t4, NULL);
     return result;
 }
 
@@ -134,11 +149,19 @@ cf_digit_gen * cf_digit_gen_dec_copy(const cf_digit_gen * gen)
     return cf_digit_gen_create_dec(g->x);
 }
 
+static
+int cf_digit_gen_dec_is_negative(const cf_digit_gen * gen)
+{
+    const cf_digit_gen_dec * g = (const cf_digit_gen_dec *)gen;
+    return g->sgn;
+}
+
 static cf_digit_gen_class _cf_digit_gen_dec_class = {
     cf_digit_gen_dec_next_term,
     cf_digit_gen_dec_is_finished,
     cf_digit_gen_dec_free,
-    cf_digit_gen_dec_copy
+    cf_digit_gen_dec_copy,
+    cf_digit_gen_dec_is_negative
 };
 
 cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
@@ -158,7 +181,6 @@ cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
     return &g->base;
 }
 
-// FIXME: get an error string if it is negative.
 char * cf_convert_to_string_float(const cf *c, int max_digits)
 {
     cf_digit_gen * gen;
@@ -174,16 +196,25 @@ char * cf_convert_to_string_float(const cf *c, int max_digits)
     gen = cf_digit_gen_create_dec(c);
     while (max_digits > 0 && !cf_is_finished(gen))
     {
-        int chars;
+        int chars, sgn = 0;
         digit = cf_next_term(gen);
-        chars = snprintf(p + count, size - count, "%d", digit);
+        if (count == 0 && digit == 0 && ((cf_digit_gen_dec*)gen)->sgn)
+        {
+            chars = sprintf(p, "-0");
+            sgn = 1;
+        }
+        else
+        {
+            chars = snprintf(p + count, size - count, "%d", digit);
+            sgn = digit < 0;
+        }
         if (!count && !cf_is_finished(gen))
         {
             snprintf(p + count + chars, size - count - chars, ".");
             ++count;
         }
         count += chars;
-        max_digits -= chars;
+        max_digits -= chars - sgn;
         // reallocate new buffer to contain the too long string.
         if (count > size - 5)
         {
