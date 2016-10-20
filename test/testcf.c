@@ -541,7 +541,8 @@ static int test_case_gcd(void)
 
 static int test_case_arithmatics_special(void)
 {
-    cf * c = cf_create_from_terms_i(10, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+    cf * c = cf_create_from_terms_i(30, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
     cf * c2 = cf_create_from_bihomographic(c, c,
                                            1, 0, 0, 0,
                                            0, 0, 0, 1);
@@ -549,8 +550,7 @@ static int test_case_arithmatics_special(void)
     char * s = cf_convert_to_string_canonical(c2, 10);
     char * s2 = cf_convert_to_string_float(c2, 10);
 
-    printf("\n  sqrt(2) * sqrt(2) =. %s\n", s);
-    printf("\n  sqrt(2) * sqrt(2) =. %s\n", s2);
+    printf("\n  sqrt(2)^2 ~ %s ~ %s\n", s, s2);
 
     cf_free(c2);
     cf_free(c);

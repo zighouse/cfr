@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <stdio.h>
 
 #include "cf.h"
 
@@ -28,53 +29,69 @@ static long long bihomographic_next_term(cf *c)
     long long ixy, ix, iy, i0;
     unsigned limit = 10000;
 
-    bihomographic * h = (bihomographic*) c;
+    bihomographic * bh = (bihomographic*) c;
 
     while (--limit)
     {
         int input_x;
 
-        if (h->e == 0 && h->f == 0 && h->g == 0 && h->h == 0) 
+        if (bh->e == 0 && bh->f == 0 && bh->g == 0 && bh->h == 0) 
         {
             return LLONG_MAX;
         }
 
         do {
 
-            if (h->f == 0)
+            if (bh->f == 0)
             {
-                input_x = 0;
+                input_x = (bh->e == 0);
                 break;
             }
-            ix  = h->b / h->f;
+            ix  = bh->b / bh->f;
 
-            if (h->g == 0)
+            if (bh->g == 0)
             {
-                input_x = 1;
+                input_x = (bh->e != 0);
                 break;
             }
-            iy  = h->c / h->g;
+            iy  = bh->c / bh->g;
 
-            ixy = h->e ? h->a / h->e : LLONG_MAX;
-            i0  = h->h ? h->d / h->h : LLONG_MAX;
+            ixy = bh->e ? bh->a / bh->e : LLONG_MAX;
+            i0  = bh->h ? bh->d / bh->h : LLONG_MAX;
 
             if (ixy == ix && ix == iy && iy == i0)
             {
                 /* output a term */
-                long long a, b, c, d;
+                long long a, b, c, d, e, f, g, h;
 
                 if (ixy < 0)
                 {
                     --ixy;
                 }
 
-                a = h->a;     b = h->b;     c = h->c;     d = h->d;
-                h->a = h->e;  h->b = h->f;  h->c = h->g;  h->d = h->h;
+                a = bh->a;     b = bh->b;     c = bh->c;     d = bh->d;
+                bh->a = bh->e;  bh->b = bh->f;  bh->c = bh->g;  bh->d = bh->h;
 
-                h->e = a - ixy * h->e;
-                h->f = b - ixy * h->f;
-                h->g = c - ixy * h->g;
-                h->h = d - ixy * h->h;
+                e = a - ixy * bh->e;
+                f = b - ixy * bh->f;
+                g = c - ixy * bh->g;
+                h = d - ixy * bh->h;
+                // detect overflow
+                if (e < 0)
+                {
+                    bh->e = 0;
+                    bh->f = 0;
+                    bh->g = 0;
+                    bh->h = 0;
+                }
+                else
+                {
+                    bh->e = e;
+                    bh->f = f;
+                    bh->g = g;
+                    bh->h = h;
+                }
+
                 return ixy;
             }
 
@@ -90,13 +107,13 @@ static long long bihomographic_next_term(cf *c)
                 break;
             }
 
-            if (h->h == 0)
+            if (bh->h == 0)
             {
                 input_x = diff(ixy, iy) > diff(ixy, ix) ? 1 : 0;
                 break;
             }
 
-            if (h->e == 0)
+            if (bh->e == 0)
             {
                 input_x = diff(i0, iy) > diff(i0, ix) ? 1 : 0;
                 break;
@@ -109,54 +126,200 @@ static long long bihomographic_next_term(cf *c)
         {
             long long p;
 
-            p = cf_next_term(h->x);
-            if (p == LLONG_MAX && cf_is_finished(h->x))
+            p = cf_next_term(bh->x);
+            if (p == LLONG_MAX && cf_is_finished(bh->x))
             {
-                h->c = h->a;
-                h->d = h->b;
-                h->g = h->e;
-                h->h = h->f;
+                bh->c = bh->a;
+                bh->d = bh->b;
+                bh->g = bh->e;
+                bh->h = bh->f;
             }
             else
             {
-                long long a = h->a, b = h->b, e = h->e, f = h->f;
+                long long a = bh->a, b = bh->b, c, d, e = bh->e, f = bh->f, g, h;
+                long long A, B, C, D, E, F, G, H;
 
-                h->a = a * p + h->c;
-                h->b = b * p + h->d;
-                h->c = a;
-                h->d = b;
+                A = a * p + bh->c;
+                B = b * p + bh->d;
+                C = a;
+                D = b;
 
-                h->e = e * p + h->g;
-                h->f = f * p + h->h;
-                h->g = e;
-                h->h = f;
+                E = e * p + bh->g;
+                F = f * p + bh->h;
+                G = e;
+                H = f;
+
+                // detect overflow
+                if ((A < 0 || E < 0)
+                    && !(bh->a < 0 || bh->b < 0 || bh->c < 0 || bh->d < 0 ||
+                         bh->e < 0 || bh->f < 0 || bh->g < 0 || bh->h < 0))
+                {
+                    long long ret = max( bh->e ? bh->a / bh->e : LLONG_MAX ,
+                                         max ( bh->f ? bh->b / bh->f : LLONG_MAX,
+                                               bh->g ? bh->c / bh->g : LLONG_MAX ) );
+                    // pre-output
+                    {
+                        a = bh->a;     b = bh->b;     c = bh->c;     d = bh->d;
+                        bh->a = bh->e;  bh->b = bh->f;  bh->c = bh->g;  bh->d = bh->h;
+
+                        e = a - ret * bh->e;
+                        f = b - ret * bh->f;
+                        g = c - ret * bh->g;
+                        h = d - ret * bh->h;
+                        if (e < 0)
+                        {
+                            bh->e = 0;
+                            bh->f = 0;
+                            bh->g = 0;
+                            bh->h = 0;
+                        }
+                        else
+                        {
+                            A = a * p + c;
+                            B = b * p + d;
+                            C = a;
+                            D = b;
+
+                            E = e * p + g;
+                            F = f * p + h;
+                            G = e;
+                            H = f;
+
+                            if (A < 0 || E < 0)
+                            {
+                                bh->e = 0;
+                                bh->f = 0;
+                                bh->g = 0;
+                                bh->h = 0;
+                            }
+                            else
+                            {
+                                bh->a = A;
+                                bh->b = B;
+                                bh->c = C;
+                                bh->d = D;
+
+                                bh->e = E;
+                                bh->f = F;
+                                bh->g = G;
+                                bh->h = H;
+                            }
+                        }
+                    }
+                    return ret;
+                }
+                else
+                {
+                    bh->a = A;
+                    bh->b = B;
+                    bh->c = C;
+                    bh->d = D;
+
+                    bh->e = E;
+                    bh->f = F;
+                    bh->g = G;
+                    bh->h = H;
+                }
             }
         }
         else
         {
             long long p;
 
-            p = cf_next_term(h->y);
-            if (p == LLONG_MAX && cf_is_finished(h->y))
+            p = cf_next_term(bh->y);
+            if (p == LLONG_MAX && cf_is_finished(bh->y))
             {
-                h->b = h->a;
-                h->d = h->c;
-                h->f = h->e;
-                h->h = h->g;
+                bh->b = bh->a;
+                bh->d = bh->c;
+                bh->f = bh->e;
+                bh->h = bh->g;
             }
             else
             {
-                long long a = h->a, c = h->c, e = h->e, g = h->g;
+                long long a = bh->a, b, c = bh->c, d, e = bh->e, f, g = bh->g, h;
+                long long A, B, C, D, E, F, G, H;
 
-                h->a = a*p + h->b;
-                h->b = a;
-                h->c = c*p + h->d;
-                h->d = c;
+                A = a * p + bh->b;
+                B = a;
+                C = c * p + bh->d;
+                D = c;
 
-                h->e = e*p + h->f;
-                h->f = e;
-                h->g = g*p + h->h;
-                h->h = g;
+                E = e * p + bh->f;
+                F = e;
+                G = g * p + bh->h;
+                H = g;
+
+                // detect overflow
+                if ((A < 0 || E < 0)
+                    && !(bh->a < 0 || bh->b < 0 || bh->c < 0 || bh->d < 0 ||
+                         bh->e < 0 || bh->f < 0 || bh->g < 0 || bh->h < 0))
+                {
+                    long long ret = max( bh->e ? bh->a / bh->e : LLONG_MAX ,
+                                         max ( bh->f ? bh->b / bh->f : LLONG_MAX,
+                                               bh->g ? bh->c / bh->g : LLONG_MAX ) );
+                    // pre-output
+                    {
+                        a = bh->a;     b = bh->b;     c = bh->c;     d = bh->d;
+                        bh->a = bh->e;  bh->b = bh->f;  bh->c = bh->g;  bh->d = bh->h;
+
+                        e = a - ret * bh->e;
+                        f = b - ret * bh->f;
+                        g = c - ret * bh->g;
+                        h = d - ret * bh->h;
+                        if (e < 0)
+                        {
+                            bh->e = 0;
+                            bh->f = 0;
+                            bh->g = 0;
+                            bh->h = 0;
+                        }
+                        else
+                        {
+                            A = a * p + b;
+                            B = a;
+                            C = c * p + d;
+                            D = c;
+
+                            E = e * p + f;
+                            F = e;
+                            G = g * p + h;
+                            H = g;
+
+                            if (A < 0 || E < 0)
+                            {
+                                bh->e = 0;
+                                bh->f = 0;
+                                bh->g = 0;
+                                bh->h = 0;
+                            }
+                            else
+                            {
+                                bh->a = A;
+                                bh->b = B;
+                                bh->c = C;
+                                bh->d = D;
+
+                                bh->e = E;
+                                bh->f = F;
+                                bh->g = G;
+                                bh->h = H;
+                            }
+                        }
+                    }
+                    return ret;
+                }
+                else
+                {
+                    bh->a = A;
+                    bh->b = B;
+                    bh->c = C;
+                    bh->d = D;
+
+                    bh->e = E;
+                    bh->f = F;
+                    bh->g = G;
+                    bh->h = H;
+                }
             }
         }
     }
