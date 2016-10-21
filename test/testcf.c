@@ -541,21 +541,40 @@ static int test_case_gcd(void)
 
 static int test_case_arithmatics_special(void)
 {
-    cf * c = cf_create_from_terms_i(30, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-                                    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
-    cf * c2 = cf_create_from_bihomographic(c, c,
-                                           1, 0, 0, 0,
-                                           0, 0, 0, 1);
+    /* sqrt(2)^2 */
+    {
+        cf * c = cf_create_from_terms_i(30, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+                                        2, 2, 2, 2, 2, 2, 2, 2, 2);
+        cf * c2 = cf_create_from_bihomographic(c, c,
+                                               1, 0, 0, 0,
+                                               0, 0, 0, 1);
 
-    char * s = cf_convert_to_string_canonical(c2, 10);
-    char * s2 = cf_convert_to_string_float(c2, 10);
+        char * s = cf_convert_to_string_canonical(c2, 10);
+        char * s2 = cf_convert_to_string_float(c2, 10);
 
-    printf("\n  sqrt(2)^2 ~ %s ~ %s\n", s, s2);
+        printf("\n  sqrt(2)^2 ~ %s ~ %s\n", s, s2);
 
-    cf_free(c2);
-    cf_free(c);
-    free(s);
-    free(s2);
+        cf_free(c2);
+        cf_free(c);
+        free(s);
+        free(s2);
+    }
+
+    /* pi / pi */
+    {
+        cf * pi = cf_create_from_pi();
+        cf * one = cf_create_from_bihomographic(pi, pi, 0, 1, 0, 0, 0, 0, 1, 0);
+        char * s = cf_convert_to_string_canonical(one, 10);
+        char * sf = cf_convert_to_string_float(one, 10);
+
+        printf("  pi / pi ~ %s ~ %s\n", s, sf);
+
+        cf_free(pi);
+        cf_free(one);
+        free(s);
+        free(sf);
+    }
 
     return 0;
 }

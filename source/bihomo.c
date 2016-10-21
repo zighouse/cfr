@@ -24,6 +24,31 @@ static long long max(long long x, long long y)
     return x > y ? x : y;
 }
 
+/* macro detect_overflow(is_overflow) */
+#if defined(__GNUC__) && defined(i386)
+#define detect_overflow(is_overflow)                         \
+{                                                            \
+    size_t eflags;                                           \
+	__asm__ (                                                \
+		"pushfl;"                                            \
+		"popl %%eax"                                         \
+      : "=a" (eflags));                                      \
+    is_overflow |= (eflags >> 11) & 1;                       \
+}
+#elif defined(__GNUC__) && defined(__x86_64__)
+#define detect_overflow(is_overflow)                         \
+{                                                            \
+    size_t rflags;                                           \
+	__asm__ (                                                \
+		"pushfq;"                                            \
+		"popq %%rax"                                         \
+      : "=a" (rflags));                                      \
+    is_overflow |= (rflags >> 11) & 1;                       \
+}
+#else
+#error detect_overflow() not implemented!
+#endif
+
 static long long bihomographic_next_term(cf *c)
 {
     long long ixy, ix, iy, i0;
@@ -63,21 +88,22 @@ static long long bihomographic_next_term(cf *c)
             {
                 /* output a term */
                 long long a, b, c, d, e, f, g, h;
+                int is_overflow = 0;
 
                 if (ixy < 0)
                 {
                     --ixy;
                 }
 
-                a = bh->a;     b = bh->b;     c = bh->c;     d = bh->d;
+                    a = bh->a;      b = bh->b;      c = bh->c;      d = bh->d;
                 bh->a = bh->e;  bh->b = bh->f;  bh->c = bh->g;  bh->d = bh->h;
 
-                e = a - ixy * bh->e;
-                f = b - ixy * bh->f;
-                g = c - ixy * bh->g;
-                h = d - ixy * bh->h;
-                // detect overflow
-                if (e < 0)
+                e = ixy * bh->e;     detect_overflow(is_overflow);
+                f = ixy * bh->f;     detect_overflow(is_overflow);
+                g = ixy * bh->g;     detect_overflow(is_overflow);
+                h = ixy * bh->h;     detect_overflow(is_overflow);
+
+                if (is_overflow)
                 {
                     bh->e = 0;
                     bh->f = 0;
@@ -86,10 +112,10 @@ static long long bihomographic_next_term(cf *c)
                 }
                 else
                 {
-                    bh->e = e;
-                    bh->f = f;
-                    bh->g = g;
-                    bh->h = h;
+                    bh->e = a - e;
+                    bh->f = b - f;
+                    bh->g = c - g;
+                    bh->h = d - h;
                 }
 
                 return ixy;
@@ -138,35 +164,47 @@ static long long bihomographic_next_term(cf *c)
             {
                 long long a = bh->a, b = bh->b, c, d, e = bh->e, f = bh->f, g, h;
                 long long A, B, C, D, E, F, G, H;
+                long long t1, t2, t3, t4;
+                int is_overflow = 0;
 
-                A = a * p + bh->c;
-                B = b * p + bh->d;
+                t1 = a * p;         detect_overflow(is_overflow);
+                t2 = b * p;         detect_overflow(is_overflow);
+                t3 = e * p;         detect_overflow(is_overflow);
+                t4 = f * p;         detect_overflow(is_overflow);
+                
+                A = t1 + bh->c;     detect_overflow(is_overflow);
+                B = t2 + bh->d;     detect_overflow(is_overflow);
                 C = a;
                 D = b;
 
-                E = e * p + bh->g;
-                F = f * p + bh->h;
+                E = t3 + bh->g;     detect_overflow(is_overflow);
+                F = t4 + bh->h;     detect_overflow(is_overflow);
                 G = e;
                 H = f;
 
-                // detect overflow
-                if ((A < 0 || E < 0)
-                    && !(bh->a < 0 || bh->b < 0 || bh->c < 0 || bh->d < 0 ||
-                         bh->e < 0 || bh->f < 0 || bh->g < 0 || bh->h < 0))
+                if (is_overflow) /* {{{ handle overflow exception */
                 {
                     long long ret = max( bh->e ? bh->a / bh->e : LLONG_MAX ,
                                          max ( bh->f ? bh->b / bh->f : LLONG_MAX,
                                                bh->g ? bh->c / bh->g : LLONG_MAX ) );
                     // pre-output
                     {
-                        a = bh->a;     b = bh->b;     c = bh->c;     d = bh->d;
+                            a = bh->a;      b = bh->b;      c = bh->c;      d = bh->d;
                         bh->a = bh->e;  bh->b = bh->f;  bh->c = bh->g;  bh->d = bh->h;
 
-                        e = a - ret * bh->e;
-                        f = b - ret * bh->f;
-                        g = c - ret * bh->g;
-                        h = d - ret * bh->h;
-                        if (e < 0)
+                        is_overflow = 0;
+
+                        t1 = ret * bh->e;   detect_overflow(is_overflow);
+                        t2 = ret * bh->f;   detect_overflow(is_overflow);
+                        t3 = ret * bh->g;   detect_overflow(is_overflow);
+                        t4 = ret * bh->h;   detect_overflow(is_overflow);
+
+                        e = a - t1;
+                        f = b - t2;
+                        g = c - t3;
+                        h = d - t4;
+
+                        if (is_overflow)
                         {
                             bh->e = 0;
                             bh->f = 0;
@@ -175,17 +213,24 @@ static long long bihomographic_next_term(cf *c)
                         }
                         else
                         {
-                            A = a * p + c;
-                            B = b * p + d;
+                            is_overflow = 0;
+
+                            t1 = a * p;       detect_overflow(is_overflow);
+                            t2 = b * p;       detect_overflow(is_overflow);
+                            t3 = e * p;       detect_overflow(is_overflow);
+                            t4 = f * p;       detect_overflow(is_overflow);
+
+                            A = t1 + c;       detect_overflow(is_overflow);
+                            B = t2 + d;       detect_overflow(is_overflow);
                             C = a;
                             D = b;
 
-                            E = e * p + g;
-                            F = f * p + h;
+                            E = t3 + g;       detect_overflow(is_overflow);
+                            F = t4 + h;       detect_overflow(is_overflow);
                             G = e;
                             H = f;
 
-                            if (A < 0 || E < 0)
+                            if (is_overflow)
                             {
                                 bh->e = 0;
                                 bh->f = 0;
@@ -207,7 +252,7 @@ static long long bihomographic_next_term(cf *c)
                         }
                     }
                     return ret;
-                }
+                } /* overflow exception handled }}} */
                 else
                 {
                     bh->a = A;
@@ -238,35 +283,47 @@ static long long bihomographic_next_term(cf *c)
             {
                 long long a = bh->a, b, c = bh->c, d, e = bh->e, f, g = bh->g, h;
                 long long A, B, C, D, E, F, G, H;
+                long long t1, t2, t3, t4;
+                int is_overflow = 0;
 
-                A = a * p + bh->b;
+                t1 = a * p;        detect_overflow(is_overflow);
+                t2 = c * p;        detect_overflow(is_overflow);
+                t3 = e * p;        detect_overflow(is_overflow);
+                t4 = g * p;        detect_overflow(is_overflow);
+
+                A = t1 + bh->b;    detect_overflow(is_overflow);
                 B = a;
-                C = c * p + bh->d;
+                C = t2 + bh->d;    detect_overflow(is_overflow);
                 D = c;
 
-                E = e * p + bh->f;
+                E = t3 + bh->f;    detect_overflow(is_overflow);
                 F = e;
-                G = g * p + bh->h;
+                G = t4 + bh->h;    detect_overflow(is_overflow);
                 H = g;
 
-                // detect overflow
-                if ((A < 0 || E < 0)
-                    && !(bh->a < 0 || bh->b < 0 || bh->c < 0 || bh->d < 0 ||
-                         bh->e < 0 || bh->f < 0 || bh->g < 0 || bh->h < 0))
+                if (is_overflow)  /* {{{ handle overflow exception */
                 {
                     long long ret = max( bh->e ? bh->a / bh->e : LLONG_MAX ,
                                          max ( bh->f ? bh->b / bh->f : LLONG_MAX,
                                                bh->g ? bh->c / bh->g : LLONG_MAX ) );
                     // pre-output
                     {
-                        a = bh->a;     b = bh->b;     c = bh->c;     d = bh->d;
+                            a = bh->a;      b = bh->b;      c = bh->c;      d = bh->d;
                         bh->a = bh->e;  bh->b = bh->f;  bh->c = bh->g;  bh->d = bh->h;
 
-                        e = a - ret * bh->e;
-                        f = b - ret * bh->f;
-                        g = c - ret * bh->g;
-                        h = d - ret * bh->h;
-                        if (e < 0)
+                        is_overflow = 0;
+
+                        t1 = ret * bh->e;      detect_overflow(is_overflow);
+                        t2 = ret * bh->f;      detect_overflow(is_overflow);
+                        t3 = ret * bh->g;      detect_overflow(is_overflow);
+                        t4 = ret * bh->h;      detect_overflow(is_overflow);
+
+                        e = a - t1;
+                        f = b - t2;
+                        g = c - t3;
+                        h = d - t4;
+
+                        if (is_overflow)
                         {
                             bh->e = 0;
                             bh->f = 0;
@@ -275,17 +332,24 @@ static long long bihomographic_next_term(cf *c)
                         }
                         else
                         {
-                            A = a * p + b;
+                            is_overflow = 0;
+
+                            t1 = a * p;      detect_overflow(is_overflow);
+                            t2 = c * p;      detect_overflow(is_overflow);
+                            t3 = e * p;      detect_overflow(is_overflow);
+                            t4 = g * p;      detect_overflow(is_overflow);
+
+                            A = t1 + b;      detect_overflow(is_overflow);
                             B = a;
-                            C = c * p + d;
+                            C = t2 + d;      detect_overflow(is_overflow);
                             D = c;
 
-                            E = e * p + f;
+                            E = t3 + f;      detect_overflow(is_overflow);
                             F = e;
-                            G = g * p + h;
+                            G = t4 + h;      detect_overflow(is_overflow);
                             H = g;
 
-                            if (A < 0 || E < 0)
+                            if (is_overflow)
                             {
                                 bh->e = 0;
                                 bh->f = 0;
@@ -307,7 +371,7 @@ static long long bihomographic_next_term(cf *c)
                         }
                     }
                     return ret;
-                }
+                } /* overflow exception is handled }}} */
                 else
                 {
                     bh->a = A;
@@ -372,3 +436,5 @@ cf * cf_create_from_bihomographic(const cf * x, const cf * y,
     bh->y = cf_copy(y);
     return &bh->base;
 }
+
+/* vim:set fdm=marker: */
