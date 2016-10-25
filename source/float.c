@@ -171,7 +171,7 @@ gcf * gcf_create_from_string_float(const char * float_str)
     gfs->base.object_class = &_gcf_float_str_class;
     gfs->chr = '\0';
     gfs->idx = 0;
-    gfs->str = strdup(float_str);
+    gfs->str = canonical_float_string(float_str);
     return &gfs->base;
 }
 
@@ -194,4 +194,94 @@ cf * cf_create_from_string_float(const char * float_str)
 
     cf_free(g);
     return c;
+}
+
+char * canonical_float_string(const char * float_str)
+{
+    char * ret;
+    char local_buf[32];
+    char * buf = local_buf;
+    int size = sizeof(local_buf);
+    const char * p;
+
+    int idx = 0;
+    int has_sign = 0, has_decimal = 0, has_number = 0;
+
+    if (float_str != NULL)
+        for (p = float_str; *p; ++p)
+        {
+            if (idx >= size -1)
+            {
+                // enlarge buf
+                char * new_buf = (char *)malloc(sizeof(char) * size * 2);
+                memcpy(new_buf, buf, size);
+                if (buf != local_buf)
+                {
+                    free(buf);
+                }
+                buf = new_buf;
+                size *= 2;
+            }
+
+            if (*p == '-')
+            {
+                if (has_sign)
+                {
+                    break;
+                }
+                has_sign = 1;
+                buf[idx++] = *p;
+            }
+            else if (*p == '+')
+            {
+                if (has_sign)
+                {
+                    break;
+                }
+                has_sign = 1;
+            }
+            else if (*p == '.')
+            {
+                if (!has_number || has_decimal)
+                {
+                    break;
+                }
+                has_decimal = 1;
+                buf[idx++] = *p;
+            }
+            else if (*p == ' ')
+            {
+                if (has_number)
+                {
+                    break;
+                }
+            }
+            else if (*p >= '0' && *p <= '9')
+            {
+                buf[idx++] = *p;
+                has_number = 1;
+                has_sign = 1;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+    if (idx)
+    {
+        buf[idx] = '\0';
+    }
+
+    if (!has_number)
+    {
+        strcpy(buf, "0");
+    }
+
+    ret = strdup(buf);
+    if (buf != local_buf)
+    {
+        free(buf);
+    }
+    return ret;
 }

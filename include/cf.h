@@ -205,6 +205,10 @@ long long cf_get_gcd(long long a, long long b);
  */
 cf * cf_create_from_float(double d);
 
+
+/* the returned canonical string should be free if non-null */
+char * canonical_float_string(const char * float_str);
+
 /*
  * Create a continued fraction from a float pointer number expressed in
  * a string.

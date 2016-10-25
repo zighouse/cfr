@@ -579,6 +579,47 @@ static int test_case_arithmatics_special(void)
     return 0;
 }
 
+static int test_case_canonical_float_string(void)
+{
+    {
+        const char * fl = "0";
+        char * fl2 = canonical_float_string(fl);
+
+        ASSERT( strcmp(fl2, "0") == 0);
+
+        free(fl2);
+    }
+
+    {
+        const char * fl = " + 0";
+        char * fl2 = canonical_float_string(fl);
+
+        ASSERT( strcmp(fl2, "0") == 0);
+
+        free(fl2);
+    }
+
+    {
+        const char * fl = " - 0";
+        char * fl2 = canonical_float_string(fl);
+
+        ASSERT( strcmp(fl2, "-0") == 0);
+
+        free(fl2);
+    }
+
+    {
+        const char * fl = " - 10.090 ";
+        char * fl2 = canonical_float_string(fl);
+
+        ASSERT( strcmp(fl2, "-10.090") == 0);
+
+        free(fl2);
+    }
+
+    return 0;
+}
+
 int main(void)
 {
     TEST( arithmatics );
@@ -591,6 +632,7 @@ int main(void)
     TEST( convert_string_float );
     TEST( gcd );
     TEST( arithmatics_special );
+    TEST( canonical_float_string );
 
     return 0;
 }
