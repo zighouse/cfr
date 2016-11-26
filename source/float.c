@@ -417,7 +417,12 @@ fraction rational_best_for(const char * f)
 
     f0 = canonical_float_string(f);
     len = strlen(f0);
-    f0 = realloc(f0, len + 2);
+    dot_pos = strchr(f0, '.');
+    f0 = realloc(f0, len + 2 + (dot_pos ? 0 : 1));
+    if (dot_pos == NULL)
+    {
+        f0[len++] = '.';
+    }
     f0[len] = '0';
     f0[len+1] = '\0';
     f1 = (char *) malloc(len + 5);

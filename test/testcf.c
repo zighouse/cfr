@@ -764,6 +764,12 @@ static int test_case_best_rational_in_interval(void)
         printf("  best rational for %s is: %lld/%lld\n",
                f, rat.n, rat.d);
     }
+    {
+        const char * f = "1.";
+        fraction rat = rational_best_for(f);
+        printf("  best rational for %s is: %lld/%lld\n",
+               f, rat.n, rat.d);
+    }
     return 0;
 }
 
