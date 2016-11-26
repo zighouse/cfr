@@ -205,7 +205,6 @@ long long cf_get_gcd(long long a, long long b);
  */
 cf * cf_create_from_float(double d);
 
-
 /* the returned canonical string should be free if non-null */
 char * canonical_float_string(const char * float_str);
 
@@ -472,6 +471,41 @@ gcf * gcf_create_from_string_float(const char * float_str);
 cf * cf_create_from_ghomo(const gcf * x,
                           long long a, long long b,
                           long long c, long long d);
+
+/*
+ * Calculate best rational in interval of cf1 and cf2.
+ */
+fraction rational_best_in(const cf* cf1, const cf* cf2);
+
+/*
+ * Calculate best rational for float string.
+ * 
+ * e.g.
+ *   f = 85.71
+ *   best_for(85.71) == best_in(85.71 - 0.005, 85.71 + 0.005).
+ */
+fraction rational_best_for(const char * f);
+
+/*
+ * add a digit to a canonical float string at a given location.
+ *
+ * @result    to store the result if size is allowed, or return error.
+ * @size      is the buffer size of result (including ending nil).
+ * @float_str is the canonical float string to add a digit.
+ * @digit     is the digit (-9~9) to be added into float.
+ * @location  is position to decimal point where the digit should be
+ *            added into the float string, positive or zero is left to
+ *            dot, and negative is right to dot.
+ *
+ * return 0 if succeed, otherwise error ocurs.
+ *
+ * e.g.
+ *   85.71 - 0.005 = add_digit(85.71, -5, -3)
+ *   85.71 + 0.005 = add_digit(85.71,  5, -3)
+ */
+int float_string_add_digit(char *result, int size,
+                           const char *float_str,
+                           int digit, int location);
 
 /*
  * CF Digit Generator generates digits from a continued fraction.

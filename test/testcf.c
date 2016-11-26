@@ -620,6 +620,153 @@ static int test_case_canonical_float_string(void)
     return 0;
 }
 
+static int test_case_float_string_add(void)
+{
+    char f2[64];
+
+    ASSERT( float_string_add_digit(f2, sizeof(f2), "9.789", 5, -4) != 0 );
+    ASSERT( float_string_add_digit(f2, sizeof(f2), "9.789", 5, 1) != 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.789", 5, 0);
+    ASSERT( strcmp(f2, "14.789") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.789", 5, -1);
+    ASSERT( strcmp(f2, "10.289") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.789", 5, -2);
+    ASSERT( strcmp(f2, "9.839") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.789", 5, -3);
+    ASSERT( strcmp(f2, "9.794") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.799", 5, -3);
+    ASSERT( strcmp(f2, "9.804") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.999", 5, -3);
+    ASSERT( strcmp(f2, "10.004") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.999", -5, -3);
+    ASSERT( strcmp(f2, "9.994") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.991", -5, -3);
+    ASSERT( strcmp(f2, "9.986") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "9.001", -5, -3);
+    ASSERT( strcmp(f2, "8.996") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "1.001", -5, -3);
+    ASSERT( strcmp(f2, "0.996") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "0.001", -5, -3);
+    ASSERT( strcmp(f2, "-0.004") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "-0.001", -5, -3);
+    ASSERT( strcmp(f2, "-0.006") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "-0.001", 5, -3);
+    ASSERT( strcmp(f2, "0.004") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "-9.999", -5, -3);
+    ASSERT( strcmp(f2, "-10.004") == 0 );
+
+    float_string_add_digit(f2, sizeof(f2), "-9.999", 5, -3);
+    ASSERT( strcmp(f2, "-9.994") == 0 );
+
+    return 0;
+}
+
+static int test_case_best_rational_in_interval(void)
+{
+    printf("\n");
+    {
+        const char * f1 = "3.1415";
+        const char * f2 = "3.1425";
+        cf * cf1 = cf_create_from_string_float(f1);
+        cf * cf2 = cf_create_from_string_float(f2);
+
+        fraction rat = rational_best_in(cf1, cf2);
+
+        printf("  best rational in interval %s and %s is: %lld/%lld\n",
+               f1, f2, rat.n, rat.d);
+
+        cf_free(cf1);
+        cf_free(cf2);
+    }
+    {
+        const char * f1 = "3.14155";
+        const char * f2 = "3.14165";
+        cf * cf1 = cf_create_from_string_float(f1);
+        cf * cf2 = cf_create_from_string_float(f2);
+
+        fraction rat = rational_best_in(cf1, cf2);
+
+        printf("  best rational in interval %s and %s is: %lld/%lld\n",
+               f1, f2, rat.n, rat.d);
+
+        cf_free(cf1);
+        cf_free(cf2);
+    }
+    {
+        const char * f1 = "1.415";
+        const char * f2 = "1.405";
+        cf * cf1 = cf_create_from_string_float(f1);
+        cf * cf2 = cf_create_from_string_float(f2);
+
+        fraction rat = rational_best_in(cf1, cf2);
+
+        printf("  best rational in interval %s and %s is: %lld/%lld\n",
+               f1, f2, rat.n, rat.d);
+
+        cf_free(cf1);
+        cf_free(cf2);
+    }
+    {
+        const char * f1 = "1.4135";
+        const char * f2 = "1.4145";
+        cf * cf1 = cf_create_from_string_float(f1);
+        cf * cf2 = cf_create_from_string_float(f2);
+
+        fraction rat = rational_best_in(cf1, cf2);
+
+        printf("  best rational in interval %s and %s is: %lld/%lld\n",
+               f1, f2, rat.n, rat.d);
+
+        cf_free(cf1);
+        cf_free(cf2);
+    }
+    {
+        const char * f = "0.69";
+        fraction rat = rational_best_for(f);
+        printf("  best rational for %s is: %lld/%lld\n",
+               f, rat.n, rat.d);
+    }
+    {
+        const char * f = "0.08571";
+        fraction rat = rational_best_for(f);
+        printf("  best rational for %s is: %lld/%lld\n",
+               f, rat.n, rat.d);
+    }
+    {
+        const char * f = "0.8571";
+        fraction rat = rational_best_for(f);
+        printf("  best rational for %s is: %lld/%lld\n",
+               f, rat.n, rat.d);
+    }
+    {
+        const char * f = "8.571";
+        fraction rat = rational_best_for(f);
+        printf("  best rational for %s is: %lld/%lld\n",
+               f, rat.n, rat.d);
+    }
+    {
+        const char * f = "85.71";
+        fraction rat = rational_best_for(f);
+        printf("  best rational for %s is: %lld/%lld\n",
+               f, rat.n, rat.d);
+    }
+    return 0;
+}
+
 int main(void)
 {
     TEST( arithmatics );
@@ -633,6 +780,8 @@ int main(void)
     TEST( gcd );
     TEST( arithmatics_special );
     TEST( canonical_float_string );
+    TEST( float_string_add );
+    TEST( best_rational_in_interval );
 
     return 0;
 }

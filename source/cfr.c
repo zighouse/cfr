@@ -72,6 +72,7 @@ static void help(char * name)
                     "    -c, --cont              display continued fraction\n"
                     "    -g, --gcd               display gcd of two integers\n"
                     "    -s, --simple            display approximate simple fraction\n"
+                    "                            print the best rational for float in round convention\n"
                     "    -l, --list              list iteration process\n"
                     "\n"
                     "    -h, --help              display this help\n"
@@ -82,8 +83,9 @@ static void help(char * name)
     fprintf(stderr, "    %s 144 89\n", name);
     fprintf(stderr, "    %s -c 89 144\n", name);
     fprintf(stderr, "    %s -c -p 55 144\n", name);
-    fprintf(stderr, "    %s -c -n 4 3.14159265\n", name);
-    fprintf(stderr, "    %s -s -m 200 3.14159265\n", name);
+    fprintf(stderr, "    %s -c -n 4 3.14159\n", name);
+    fprintf(stderr, "    %s -s 3.142\n", name);
+    fprintf(stderr, "    %s -s 3.1416\n", name);
     fprintf(stderr, "    %s -c -p -n 18 2.71828182845964\n", name);
     fprintf(stderr, "    %s -l 1920 1080\n", name);
     fprintf(stderr, "    %s -cp -- -16 9\n", name);
@@ -107,6 +109,7 @@ struct context {
     int index;
     char show_mod; /* continued, gcd, simple, verbose */
     struct cfstep * steps;
+    char * num, * den;
 };
 
 static void cfrcb_print_verb(cf_converg_term *t, long long gcd, void * data)
@@ -324,8 +327,8 @@ static void print_report(int argc, char ** argv, void *data)
 static int parse_options(int argc, char ** argv, struct context *ctx)
 {
     char c;
-    char * numerator = NULL;
-    char * denominator = NULL;
+    ctx->num = NULL;
+    ctx->den = NULL;
 
     // parse named options
     while (1) {
@@ -428,22 +431,22 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
     {
         return 1;
     }
-    numerator = strdup(argv[optind++]);
+    ctx->num = strdup(argv[optind++]);
     {
-        char * p = strrchr(numerator, '/');
+        char * p = strrchr(ctx->num, '/');
         if (p)
         {
             *p = '\0';
             ++p;
             if (*p)
             {
-                denominator = strdup(p);
+                ctx->den = strdup(p);
             }
         }
     }
 
     // parse denominator
-    if (!denominator && optind < argc)
+    if (!ctx->den && optind < argc)
     {
         if (*argv[optind] == '/')
         {
@@ -462,28 +465,27 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             }
         }
 
-        denominator = strdup(argv[optind++]);
+        ctx->den = strdup(argv[optind++]);
     }
     {
         cf *cfx = NULL, *cfy = NULL;
         long long nx = 0ll, ny = 0ll;
 
         ctx->is_float = 0;
-        if (strchr(numerator, '.'))
+        if (strchr(ctx->num, '.'))
         {
-            cfx = cf_create_from_string_float(numerator);
+            cfx = cf_create_from_string_float(ctx->num);
             ctx->is_float = 1;
         }
         else
         {
-            nx = atoll(numerator);
+            nx = atoll(ctx->num);
         }
-        free(numerator);
-        if (denominator)
+        if (ctx->den)
         {
-            if (strchr(denominator, '.'))
+            if (strchr(ctx->den, '.'))
             {
-                cfy = cf_create_from_string_float(denominator);
+                cfy = cf_create_from_string_float(ctx->den);
                 if (ctx->is_float)
                 {
                     ctx->x = cf_create_from_bihomographic(cfx, cfy, 0, 1, 0, 0, 0, 0, 1, 0);
@@ -499,7 +501,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             }
             else
             {
-                ny = atoll(denominator);
+                ny = atoll(ctx->den);
                 if (ctx->is_float)
                 {
                     ctx->x = cf_create_from_homographic(cfx, 1, 0, 0, ny);
@@ -511,7 +513,6 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                     ctx->rat = (fraction){nx, ny};
                 }
             }
-            free(denominator);
         }
         else
         {
@@ -564,6 +565,29 @@ int main(int argc, char ** argv)
         /* show simple */
         {
             fraction f;
+            if (ctx.is_float)
+            {
+                if (ctx.den == NULL)
+                {
+                    fraction f = rational_best_for(ctx.num);
+                    cf_free(ctx.x);
+                    ctx.x = cf_create_from_fraction(f);
+                }
+                else
+                {
+                    fraction f1 = rational_best_for(ctx.num);
+                    fraction f2 = rational_best_for(ctx.den);
+                    cf * c1 = cf_create_from_fraction(f1);
+                    cf * c2 = cf_create_from_fraction(f2);
+                    cf * c  = cf_create_from_bihomographic(c1, c2,
+                                                           0, 1, 0, 0,
+                                                           0, 0, 1, 0);
+                    cf_free(ctx.x);
+                    ctx.x = c;
+                    cf_free(c1);
+                    cf_free(c2);
+                }
+            }
             ctx.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
             cfr(ctx.x, 0, &ctx.limits, cfrcb_accept_simp, &ctx);
             f = ctx.steps->t.convergent;

@@ -80,7 +80,7 @@ static number_pair _gcf_float_str_next_term(gcf *g)
     if (!gfs->idx)
     {
         long long n = atoll(gfs->str);
-        char *p = strchr(gfs->str, '.'); 
+        char *p = strchr(gfs->str, '.');
         if (p)
         {
             gfs->idx = p - gfs->str + 1;
@@ -284,4 +284,164 @@ char * canonical_float_string(const char * float_str)
         free(buf);
     }
     return ret;
+}
+
+/*
+ * add a digit to a canonical float string at a given location.
+ *
+ * @result    to store the result if size is allowed, or return error.
+ * @size      is the buffer size of result (including ending nil).
+ * @float_str is the canonical float string to add a digit.
+ * @digit     is the digit (-9~9) to be added into float.
+ * @location  is position to decimal point where the digit should be
+ *            added into the float string, positive or zero is left to
+ *            dot, and negative is right to dot.
+ *
+ * return 0 if succeed, otherwise error ocurs.
+ */
+int float_string_add_digit(char *result, int size,
+                           const char *float_str,
+                           int digit, int location)
+{
+    const char *f1, *dot;
+    char *f2, value;
+    int len, pos, i;
+
+    if (!result)
+        return 1;
+
+    if (!float_str)
+        return 1;
+
+    if (digit > 9 || digit < -9)
+        return 1;
+
+    if (float_str[0] == '-')
+    {
+        /* negative */
+        int err;
+        err = float_string_add_digit(result+1, size-1,
+                                     float_str+1, -digit, location);
+        if (err)
+            return err;
+        result[0] = '-';
+        if (result[1] == '-')
+        {
+            for (i = 0; i < size - 1 && result[i+2] != '\0'; ++i)
+            {
+                result[i] = result[i+2];
+            }
+            result[i] = '\0';
+        }
+        return err;
+    }
+
+    f1 = float_str;
+    len = strlen(f1);
+    dot = strchr(f1, '.');
+    if (dot == NULL)
+        dot = f1;
+    pos = dot - f1 - location - (location > 0 ? 1 : 0);
+    if (pos < 0 || pos > len - 1)
+        return 1;
+
+    f2 = result + 1;
+    if (size < len + 1)
+        return 1;
+
+    for (i = len; i > pos; --i)
+    {
+        f2[i] = f1[i];
+    }
+
+    for (i = pos; i >= 0; --i)
+    {
+        if (f1[i] == '.')
+        {
+            f2[i] = f1[i];
+            continue;
+        }
+        else
+        {
+            value = f1[i] + digit;
+            if (value > '9')
+            {
+                digit = 1;
+                value -= 10;
+            }
+            else if (value < '0')
+            {
+                digit = -1;
+                value += 10;
+            }
+            else
+            {
+                digit = 0;
+            }
+            f2[i] = value;
+        }
+    }
+
+    if (digit > 0)
+    {
+        result[0] = digit + '0';
+    }
+    else if (digit == 0)
+    {
+        for (i = 0; f2[i] != '\0'; ++i)
+        {
+            result[i] = f2[i];
+        }
+        result[i] = f2[i];
+    }
+    else //if (digit < 0)
+    {
+        /* substract the borrowed 10 down to end */
+        result[0] = '-';
+        for (i = 0; f2[i] != '\0'; ++i)
+        {
+            if (f2[i] != '.')
+                f2[i] = '0' + '9' - f2[i];
+        }
+        f2[i-1]++;
+    }
+    return 0;
+}
+
+fraction rational_best_for(const char * f)
+{
+    char * f0, * f1, * f2, *dot_pos;
+    int len, i;
+    cf * c1, * c2;
+    fraction r;
+
+    f0 = canonical_float_string(f);
+    len = strlen(f0);
+    f0 = realloc(f0, len + 2);
+    f0[len] = '0';
+    f0[len+1] = '\0';
+    f1 = (char *) malloc(len + 5);
+    f2 = (char *) malloc(len + 5);
+    dot_pos = strchr(f0, '.');
+    if (dot_pos)
+    {
+        i = 1 - strlen(dot_pos);
+    }
+    else
+    {
+        i = -1;
+    }
+    float_string_add_digit(f1, len + 4, f0, -5, i);
+    float_string_add_digit(f2, len + 4, f0,  5, i);
+    c1 = cf_create_from_string_float(f1);
+    c2 = cf_create_from_string_float(f2);
+    r = rational_best_in(c1, c2);
+
+    /* clean up */
+    cf_free(c1);
+    cf_free(c2);
+    free(f1);
+    free(f2);
+    free(f0);
+    return r;
 }

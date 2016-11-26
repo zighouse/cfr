@@ -94,6 +94,7 @@ cf_converg_gen * cf_converg_gen_create(const cf * c)
     s->m[2] = s->m[1] = 0ll;
     s->c = cf_copy(c);
     s->idx = 0;
+    s->finished = cf_is_finished(s->c);
     s->ai[s->idx] = cf_next_term(s->c);
     s->s[s->idx].n = s->m[0] * s->ai[s->idx] + s->m[2];
     s->s[s->idx].d = s->m[1] * s->ai[s->idx] + s->m[3];
@@ -101,7 +102,6 @@ cf_converg_gen * cf_converg_gen_create(const cf * c)
     s->m[3] = s->m[1];
     s->m[0] = s->s[s->idx].n;
     s->m[1] = s->s[s->idx].d;
-    s->finished = cf_is_finished(s->c);
     s->base.object_class = &_cf_converg_gen_priv_class;
     return &s->base;
 }

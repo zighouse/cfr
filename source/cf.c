@@ -161,6 +161,71 @@ int cf_compare(const cf *_x, const cf *_y)
     return cmp;
 }
 
+fraction rational_best_in(const cf* cf1, const cf* cf2)
+{
+    long long *n, a1, a2;
+    size_t size = 32, count = 0;
+    cf * c1 = cf_copy(cf1);
+    cf * c2 = cf_copy(cf2);
+
+    n = (long long *)malloc(size * sizeof(long long));
+    if (n != NULL)
+    {
+        while (!cf_is_finished(c1) && !cf_is_finished(c2))
+        {
+            a1 = cf_next_term(c1);
+            a2 = cf_next_term(c2);
+            if (a1 == a2)
+            {
+                if (count >= size - 1)
+                {
+                    // enlarge buffer
+                    long long *m = (long long *)
+                        malloc(size * 2 * sizeof(long long));
+                    if (!m)
+                        break; /* no memory */
+
+                    memcpy(m, n, size * sizeof(long long));
+                    size *= 2;
+                    free(n);
+                    n = m;
+                }
+                n[count] = a1;
+                count++;
+            }
+            else
+            {
+                n[count] = (a1 < a2 ? a1 : a2) + 1;
+                count++;
+                break;
+            }
+        }
+    }
+
+    cf_free(c1);
+    cf_free(c2);
+
+    if (count)
+    {
+        cf * c = cf_create_from_terms(n, count);
+        cf_converg_gen * gen = cf_converg_gen_create(c);
+        cf_converg_term conv = {0};
+        while (!cf_is_finished(gen))
+        {
+            conv = cf_next_term(gen);
+        }
+        cf_free(c);
+        cf_free(gen);
+        free(n);
+        return conv.convergent;
+    }
+
+    if (n)
+        free(n);
+    return (fraction){0ll,1ll};
+}
+
+
 char * cf_convert_to_string_canonical(const cf *c, int max_terms)
 {
     cf * x = cf_copy(c);
