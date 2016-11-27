@@ -66,6 +66,7 @@ typedef struct _gcf_float_str {
     char * str;
     char chr;
     int idx;
+    int sign_state;
 } gcf_float_str;
 
 static number_pair _gcf_float_str_next_term(gcf *g)
@@ -89,6 +90,7 @@ static number_pair _gcf_float_str_next_term(gcf *g)
         {
             gfs->idx = strlen(gfs->str);
         }
+        gfs->sign_state = gfs->str[0] == '-';
         return (number_pair){1, n};
     }
 
@@ -98,7 +100,15 @@ static number_pair _gcf_float_str_next_term(gcf *g)
         if (chr >= '0' && chr <= '9')
         {
             gfs->chr = chr;
-            return (number_pair){1ll, 0ll};
+            if (gfs->sign_state)
+            {
+                gfs->sign_state = !gfs->sign_state;
+                return (number_pair){-1ll, 0ll};
+            }
+            else
+            {
+                return (number_pair){1ll, 0ll};
+            }
         }
         else
         {
