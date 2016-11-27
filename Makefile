@@ -31,7 +31,6 @@ clean:
 $(BIN_DIR)/cfr: source/cfr.c
 	mkdir -p $(BIN_DIR)
 	gcc $(OPTS) -o $@ $^ -L$(LIB_DIR) -lcf $(LDFLAGS) $(CFLAGS)
-	strip $@
 
 $(LIB_DIR)/libcf.a: $(OBJS)
 	mkdir -p $(LIB_DIR)

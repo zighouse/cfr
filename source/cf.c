@@ -167,6 +167,17 @@ fraction rational_best_in(const cf* cf1, const cf* cf2)
     size_t size = 32, count = 0;
     cf * c1 = cf_copy(cf1);
     cf * c2 = cf_copy(cf2);
+    int is_done = 0;
+
+#define ENLARGE_BUFFER                                            \
+    do { if (count >= size - 1)                                   \
+    {                                                             \
+        /* enlarge buffer */                                      \
+        long long *m = realloc(n, size * 2 * sizeof(long long));  \
+        if (!m) break; /* no memory */                            \
+        size *= 2;                                                \
+        n = m;                                                    \
+    } } while (0)
 
     n = (long long *)malloc(size * sizeof(long long));
     if (n != NULL)
@@ -177,28 +188,56 @@ fraction rational_best_in(const cf* cf1, const cf* cf2)
             a2 = cf_next_term(c2);
             if (a1 == a2)
             {
-                if (count >= size - 1)
-                {
-                    // enlarge buffer
-                    long long *m = (long long *)
-                        malloc(size * 2 * sizeof(long long));
-                    if (!m)
-                        break; /* no memory */
-
-                    memcpy(m, n, size * sizeof(long long));
-                    size *= 2;
-                    free(n);
-                    n = m;
-                }
+                ENLARGE_BUFFER;
                 n[count] = a1;
                 count++;
             }
             else
             {
-                n[count] = (a1 < a2 ? a1 : a2) + 1;
-                count++;
+                if (count % 2 == 1)
+                {
+                    ENLARGE_BUFFER;
+                    n[count] = (a1 < a2 ? a1 : a2) + 1;
+                    count++;
+                }
+                else
+                {
+                    ENLARGE_BUFFER;
+                    n[count] = (a1 < a2 ? a1 : a2) + 1;
+                    count++;
+                    // TODO 0.87 and 0.88
+                }
+                is_done = 1;
                 break;
             }
+        }
+        if (!is_done)
+        {
+            /* assumpt: c1 < c2 */
+            if (count % 2 == 0)
+            {
+                if (!cf_is_finished(c1))
+                {
+                    a1 = cf_next_term(c1);
+                    ENLARGE_BUFFER;
+                    n[count] = a1 + 1;
+                    count++;
+                }
+                //else
+                //{
+                //    // TODO
+                //    printf("TODO 1: count: %ld: a1: %lld, %s; a2: %lld, %s\n", count,
+                //           a1, (cf_is_finished(c1) ? "END" : "..."),
+                //           a1, (cf_is_finished(c2) ? "END" : "..."));
+                //}
+            }
+            //else
+            //{
+            //    // TODO
+            //    printf("TODO 2: count: %ld: a1: %lld, %s; a2: %lld, %s\n", count,
+            //           a1, (cf_is_finished(c1) ? "END" : "..."),
+            //           a1, (cf_is_finished(c2) ? "END" : "..."));
+            //}
         }
     }
 
@@ -223,6 +262,7 @@ fraction rational_best_in(const cf* cf1, const cf* cf2)
     if (n)
         free(n);
     return (fraction){0ll,1ll};
+#undef ENLARGE_BUFFER
 }
 
 

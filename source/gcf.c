@@ -114,10 +114,10 @@ static long long ghomo_next_term(cf *g)
                 goto EXIT_FUNC;
             }
 
-            if (mpz_sgn(i1) < 0)
-            {
-                mpz_sub_ui(i1, i1, 1);
-            }
+            //if (mpz_sgn(i1) < 0)
+            //{
+            //    mpz_sub_ui(i1, i1, 1);
+            //}
 
             mpz_set(h->a, h->c);
             mpz_set(h->b, h->d);

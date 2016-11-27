@@ -64,36 +64,60 @@ Example of continued fraction of an irrational number:
 
 ## OPTIONS
 
-    -m, --maxden=integer   specify the maximum denominator
+    -m, --maxden=integer    maximum denominator
 
-        --maxnum=integer   specify the maximum numerator
+        --maxnum=integer    maximum numerator
 
-    -w, --welformed        display in welformed style
+    -n, --number=integer    maximum number of contined fraction coeffs
 
-    -p, --plain            display in plain style
+    -w, --welformed         welformed style (default)
 
-    -v, --verbose          display detailed iteration process (default)
+    -p, --plain             plain style
 
-    -c, --cont             display continued fraction
+    -r, --report            report result
 
-    -g, --gcd              display gcd of two integers
+    -c, --cont              display continued fraction
 
-    -s, --simple           display approximate simple fraction
+    -g, --gcd               display gcd of two integers
 
-    -h, --help             display help information
+    -s, --simple            display approximate simple fraction
+                            print the best rational for float in round convention
 
-    --version              display version information
+    -l, --list              list iteration process
+
+    -h, --help              display this help
+
+    --version               output version information
+
+    --                      following minus number not parsed as option(s)
 
 ## EXAMPLE
 
 1.
 
-    $ ./cfr -m 200 -w 3.14159
+    $ ./cfr -m 200 3.14159
 
-       3 / 1     3  err = 1.415900e-01
-      22 / 7     7  err = -1.267143e-03
-     333 / 106  15  err = 8.056604e-05
-     355 / 113   1  err = -2.920354e-06
+    Status:
+        Calculation is not completed.
+        GCD is not available.
+        Simple fraction = 355 / 113
+    
+    Continued fraction:
+                  1
+    3 + ---------------------
+                     1
+         7 + ----------------
+                        1
+              15 + ----------
+                          1
+                    1 + -----
+                         ...
+    
+    Calculating iterations: 4
+      3 / 1     3  (1/8 < err < 1/7)
+     22 / 7     7  (1/791 < err < 1/742)
+    333 / 106  15  (1/23214 < err < 1/11978)
+    355 / 113   1  (1/343972 < err < 1/331203)
 
 result shows the best fraction with den<=200 approx 3.14159 is 355/113,
 and the continued fraction is:
@@ -104,15 +128,39 @@ and the continued fraction is:
 
     $ ./cfr -w 1920 1080
 
-      1 / 1  1  err = 7.777778e-01
-      2 / 1  1  err = -2.222222e-01
-      7 / 4  3  err = 2.777778e-02
-     16 / 9  2  gcd = 120
+    Status:
+        Calculation is completed.
+        GCD = 120
+        Simple fraction = 16 / 9
 
-result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120.
+    Continued fraction:
+              1
+    1 + -------------
+                 1
+         1 + --------
+                   1
+              3 + ---
+                   2
+
+    Calculating iterations: 4
+     1 / 1  1  (1/2 < err < 1/1)
+     2 / 1  1  (1/5 < err < 1/4)
+     7 / 4  3  (1/52 < err < 1/36)
+    16 / 9  2  (gcd = 120)
+
+result shows: 1920/1080 = 16/9, and the gcd of 1920 and 1080 is 120, and
+the continued fraction is:
+
+    1 + 1/(1 + 1/(3 + 1/2)).
+
+
+## LIBRARY
+
+The library libcf.a implements more functions related to continued fractions.
+
 
 ## AUTHOR
 
-Written by Xie Zhigang based on work of Arno Formella (May 2008)
-and David Eppstein (8 Aug 1993).
-http://www.ics.uci.edu/~eppstein/numth/frap.c
+Written by Xie Zhigang.
+
+The algorithm of arithmethics of continued fractions is invented by Gosper.
