@@ -29,6 +29,15 @@ void mpz_set_ll(mpz_t z, long long sll)
 long long mpz_get_ll(mpz_t z)
 {
     long long result = 0;
-    mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
-    return result;
+    switch (mpz_sgn(z))
+    {
+    case 0:
+        return 0ll;
+    case -1:
+        mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
+        return -result;
+    default:
+        mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
+        return result;
+    }
 }
