@@ -202,10 +202,49 @@ fraction rational_best_in(const cf* cf1, const cf* cf2)
                 }
                 else
                 {
-                    ENLARGE_BUFFER;
-                    n[count] = (a1 < a2 ? a1 : a2) + 1;
-                    count++;
-                    // TODO 0.87 and 0.88
+                    long long a_min = a1 < a2 ? a1 : a2;
+                    if (a_min != a1)
+                    {
+                        /*
+                         * swap a1/a2, and cf1/cf2
+                         * make that: cf1 < cf2
+                         */
+                        cf * ct = c2;
+                        c2 = c1;
+                        c1 = ct;
+                        a2 = a1;
+                        a1 = a_min;
+                    }
+
+                    if (a1 + 1 == a2 && cf_is_finished(c2))
+                    {
+                        /* avoid include cf2 as result, because cf2 is
+                         * the right boundary and is exclusive. */
+                        ENLARGE_BUFFER;
+                        n[count] = a_min;
+                        count++;
+
+                        if (!cf_is_finished(c1))
+                        {
+                            a1 = cf_next_term(c1);
+                            ENLARGE_BUFFER;
+                            n[count] = a1;
+                            count++;
+                            if (a1 == 1 && !cf_is_finished(c1))
+                            {
+                                a1 = cf_next_term(c1);
+                                ENLARGE_BUFFER;
+                                n[count] = a1 + 1;
+                                count++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        ENLARGE_BUFFER;
+                        n[count] = a_min + 1;
+                        count++;
+                    }
                 }
                 is_done = 1;
                 break;
@@ -213,31 +252,23 @@ fraction rational_best_in(const cf* cf1, const cf* cf2)
         }
         if (!is_done)
         {
-            /* assumpt: c1 < c2 */
             if (count % 2 == 0)
             {
                 if (!cf_is_finished(c1))
                 {
-                    a1 = cf_next_term(c1);
+                    /* c1 < c2 */
                     ENLARGE_BUFFER;
-                    n[count] = a1 + 1;
+                    n[count] = cf_next_term(c1) + 1;
                     count++;
                 }
-                //else
-                //{
-                //    // TODO
-                //    printf("TODO 1: count: %ld: a1: %lld, %s; a2: %lld, %s\n", count,
-                //           a1, (cf_is_finished(c1) ? "END" : "..."),
-                //           a1, (cf_is_finished(c2) ? "END" : "..."));
-                //}
+                else if (!cf_is_finished(c2))
+                {
+                    /* c2 < c1 */
+                    ENLARGE_BUFFER;
+                    n[count] = cf_next_term(c2) + 1;
+                    count++;
+                }
             }
-            //else
-            //{
-            //    // TODO
-            //    printf("TODO 2: count: %ld: a1: %lld, %s; a2: %lld, %s\n", count,
-            //           a1, (cf_is_finished(c1) ? "END" : "..."),
-            //           a1, (cf_is_finished(c2) ? "END" : "..."));
-            //}
         }
     }
 
