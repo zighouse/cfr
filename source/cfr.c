@@ -75,6 +75,8 @@ static void help(char * name)
                     "                            print the best rational for float in round convention\n"
                     "    -l, --list              list iteration process\n"
                     "\n"
+                    "    -v, --reverse           convert a continued fraction into fraction\n"
+                    "\n"
                     "    -h, --help              display this help\n"
                     "    --version               output version information\n"
                     "    --                      following minus number not parsed as option(s)\n");
@@ -86,6 +88,7 @@ static void help(char * name)
     fprintf(stderr, "    %s -c -n 4 3.14159\n", name);
     fprintf(stderr, "    %s -s 3.142\n", name);
     fprintf(stderr, "    %s -s 3.1416\n", name);
+    fprintf(stderr, "    %s -rv 3 7 16\n", name);
     fprintf(stderr, "    %s -c -p -n 18 2.71828182845964\n", name);
     fprintf(stderr, "    %s -l 1920 1080\n", name);
     fprintf(stderr, "    %s -cp -- -16 9\n", name);
@@ -103,6 +106,7 @@ struct context {
     cf * x;
     fraction rat;
     settings limits;
+    int is_reverse;
     int is_float;
     int is_welformed;
     int is_complete;
@@ -305,7 +309,7 @@ static void print_report(int argc, char ** argv, void *data)
 
     printf("\nStatus:\n");
     printf("    Calculation is%s completed.\n", ctx->is_complete ? "" : " not");
-    if (ctx->is_complete && !ctx->is_float)
+    if (ctx->is_complete && !ctx->is_float && !ctx->is_reverse)
     {
         printf("    GCD = %lld\n", ctx->steps->gcd);
     }
@@ -344,12 +348,13 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             {"gcd",       no_argument,       0, 'g'},
             {"simple",    no_argument,       0, 's'},
             {"list",      no_argument,       0, 'l'},
+            {"reverse",   no_argument,       0, 'v'},
             {"help",      no_argument,       0, 'h'},
             {"version",   no_argument,       0,  0 },
             {0,           0,                 0,  0 }
         };
 
-        c = getopt_long(argc, argv, "m:n:wprcgslh",
+        c = getopt_long(argc, argv, "m:n:wprcgslvh",
                         long_options, &option_index);
         if (c == -1)
         {
@@ -410,6 +415,11 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             ctx->show_mod = c;
             break;
 
+        case 'v':
+            /* reverse, calculate rational from a continued fraction. */
+            ctx->is_reverse = 1;
+            break;
+
         case 'h':
             help(argv[0]);
             exit(0);
@@ -426,10 +436,33 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         exit(0);
     }
 
-    // parse numerator
+    // parse numerator and/or other operands
     if (optind >= argc)
     {
         return 1;
+    }
+    if (ctx->is_reverse)
+    {
+        /* reverse function directly and exit */
+        long long *nums;
+        int size = argc - optind, i;
+        nums = (long long *)malloc(sizeof(long long) * (size));
+        if (!nums)
+        {
+            fprintf(stderr, "no memory\n");
+            return 1;
+        }
+        for (i = 0; i < size; i++)
+        {
+            nums[i] = atoll(argv[i + optind]);
+        }
+        ctx->x = cf_create_from_terms(nums, size);
+        if (!ctx->show_mod)
+        {
+            ctx->show_mod = 's';
+        }
+        free(nums);
+        return 0;
     }
     ctx->num = strdup(argv[optind++]);
     {
@@ -541,7 +574,7 @@ int main(int argc, char ** argv)
     ctx.limits.max_numerator = ctx.limits.max_denominator = LLONG_MAX;
     ctx.limits.max_index = INT_MAX;
     ctx.is_welformed = 1;
-    ctx.show_mod = 'r';
+    ctx.show_mod = '\0';
 
     /* parse options */
     if (parse_options(argc, argv, &ctx) != 0)
@@ -627,6 +660,8 @@ int main(int argc, char ** argv)
             cfr(ctx.x, gcd, &ctx.limits, cfrcb_print_verb, &ctx);
         }
         break;
+    case 'r':
+        /* no break */
     default:
         gcd = ctx.is_float ? 0 : cf_get_gcd(ctx.rat.n, ctx.rat.d);
         ctx.is_complete = cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
