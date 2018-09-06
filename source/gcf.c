@@ -315,3 +315,94 @@ cf * cf_create_from_pi(void)
     cf_free(g);
     return c;
 }
+
+/*
+ * one algorithm to calculate sqrt(n) (not the best one)
+ *
+ *                     n - 1
+ * sqrt(n) = 1 + --------------------
+ *                        n - 1
+ *               2 + ----------------
+ *                          n - 1
+ *                   2 + ------------
+ *                            n - 1
+ *                       2 + --------
+ *                           2 + ...
+ *        = gcf({1,1},{n-1,2},{n-1,2},{n-1,2}...)
+ */
+typedef struct _gcf_sqrt_n gcf_sqrt_n;
+static gcf_class _gcf_sqrt_n_class;
+struct _gcf_sqrt_n {
+    gcf base;
+    unsigned long long n_minus_one;
+    int got_first;
+};
+
+static number_pair gcf_sqrt_n_next_term(gcf *g)
+{
+    gcf_sqrt_n * sqrt_n = (gcf_sqrt_n*)g;
+    if (sqrt_n->got_first)
+    {
+        return (number_pair){sqrt_n->n_minus_one, 2ll};
+    }
+    else
+    {
+        sqrt_n->got_first = 1;
+        return (number_pair){1, 1};
+    }
+}
+
+static int gcf_sqrt_n_is_finished(const gcf *g)
+{
+    return 0;
+}
+
+static void gcf_sqrt_n_free(gcf *g)
+{
+    free(g);
+}
+
+static gcf * gcf_sqrt_n_copy(const gcf *g)
+{
+    gcf_sqrt_n * sqrt_n = (gcf_sqrt_n*)g;
+    return gcf_create_from_sqrt_n(sqrt_n->n_minus_one + 1ll);
+}
+
+static gcf_class _gcf_sqrt_n_class = {
+    gcf_sqrt_n_next_term,
+    gcf_sqrt_n_is_finished,
+    gcf_sqrt_n_free,
+    gcf_sqrt_n_copy
+};
+
+gcf * gcf_create_from_sqrt_n(unsigned long long n)
+{
+    if (n == 0ll)
+    {
+        static const number_pair zeros = {0ll, 0ll};
+        return gcf_create_from_pairs(&zeros, 1);
+    }
+    else if (n == 1ll)
+    {
+        static const number_pair one_and_zero = {1ll, 0ll};
+        return gcf_create_from_pairs(&one_and_zero, 1);
+    }
+    else
+    {
+        gcf_sqrt_n * sqrt_n = (gcf_sqrt_n*)malloc(sizeof(gcf_sqrt_n));
+        if (!sqrt_n)
+            return NULL;
+        sqrt_n->n_minus_one = n - 1;
+        sqrt_n->got_first = 0;
+        sqrt_n->base.object_class = &_gcf_sqrt_n_class;
+        return &sqrt_n->base;
+    }
+}
+
+cf * cf_create_from_sqrt_n(unsigned long long n)
+{
+    gcf * g = gcf_create_from_sqrt_n(n);
+    cf * c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+    cf_free(g);
+    return c;
+}

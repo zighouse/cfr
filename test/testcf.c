@@ -335,6 +335,36 @@ static int test_case_calculate_pi(void)
     return 0;
 }
 
+static int test_case_calculate_sqrt_5(void)
+{
+    {
+        cf  *c = cf_create_from_sqrt_n(5ll);
+        char * s = cf_convert_to_string_float(c, 100);
+
+        printf("\n  calulate sqrt(5) to 100 digits as:\n  %s\n", s);
+
+        cf_free(c);
+        free(s);
+    }
+    {
+        cf  *c = cf_create_from_sqrt_n(5ll);
+        cf *phi = cf_create_from_homographic(c, 1, 1, 0, 2);
+        cf *phi2 = cf_create_from_bihomographic(phi, phi, 1, 0, 0, 0, 0, 0, 0, 1);
+        char * s = cf_convert_to_string_float(phi, 100);
+        char * s2 = cf_convert_to_string_float(phi2, 100);
+
+        printf("\n  calulate phi = (sqrt(5)+1)/2 to 100 digits as:\n  %s\n", s);
+        printf("\n  calulate phi^2 to 100 digits as:\n  %s\n", s2);
+
+        cf_free(c);
+        cf_free(phi);
+        cf_free(phi2);
+        free(s);
+        free(s2);
+    }
+    return 0;
+}
+
 static int test_case_convert_from_float(void)
 {
     double pi = 3.141592653589793;
@@ -779,6 +809,7 @@ int main(void)
     TEST( convergent );
     TEST( calculate_pi_gcf );
     TEST( calculate_pi );
+    TEST( calculate_sqrt_5 );
     TEST( convert_from_float );
     TEST( convert_pi_string );
     TEST( convert_string_canonical );

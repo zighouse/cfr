@@ -7,6 +7,7 @@ BIN_DIR := .
 LIBS += $(LIB_DIR)/libcf.a
 BINS += $(BIN_DIR)/cfr
 BINS += $(BIN_DIR)/testcf
+BINS += $(BIN_DIR)/pi
 
 OBJS += $(OBJ_DIR)/cf.o
 OBJS += $(OBJ_DIR)/homo.o
@@ -37,6 +38,10 @@ $(LIB_DIR)/libcf.a: $(OBJS)
 	ar Ur $@ $^ 
 
 $(BIN_DIR)/testcf: test/testcf.c $(LIBS)
+	mkdir -p $(BIN_DIR)
+	gcc $(OPTS) -o $@ $< -L$(LIB_DIR) -lcf $(LDFLAGS) $(CFLAGS)
+
+$(BIN_DIR)/pi: test/pi.c $(LIBS)
 	mkdir -p $(BIN_DIR)
 	gcc $(OPTS) -o $@ $< -L$(LIB_DIR) -lcf $(LDFLAGS) $(CFLAGS)
 

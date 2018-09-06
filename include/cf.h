@@ -339,6 +339,15 @@ cf * cf_create_from_bihomographic(const cf * x, const cf * y,
 cf * cf_create_from_pi(void);
 
 /*
+ * Create a CF which the value is sqrt(n)
+ *
+ * Implemented by using function `gcf_create_from_sqrt_n()'.
+ *
+ * Need to be freed by `cf_free()' helper macro.
+ */
+cf * cf_create_from_sqrt_n(unsigned long long n);
+
+/*
  * Generalized continued fraction.
  *
  *                        a1
@@ -434,6 +443,28 @@ gcf * gcf_create_from_pairs(const number_pair * arr,
  * Need to be freed by `cf_free()' helper macro.
  */
 gcf * gcf_create_from_pi(void);
+
+/*
+ * Create a GCF which the value is sqrt(n).
+ *
+ * Returns an expression of sqrt(n):
+ *
+ *                     n - 1
+ * sqrt(n) = 1 + --------------------
+ *                        n - 1
+ *               2 + ----------------
+ *                          n - 1
+ *                   2 + ------------
+ *                            n - 1
+ *                       2 + --------
+ *                           2 + ...
+ *        = gcf({1,1},{n-1,2},{n-1,2},{n-1,2}...)
+ *
+ * This GCF expression is not the best one to calculate sqrt.
+ *
+ * Need to be freed by `cf_free()' helper macro.
+ */
+gcf * gcf_create_from_sqrt_n(unsigned long long n);
 
 /*
  * Create a GCF from a float pointer number expressed in a string.
