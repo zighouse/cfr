@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 
 #include "cf.h"
 #include "common.h"
@@ -375,17 +376,59 @@ static gcf_class _gcf_sqrt_n_class = {
     gcf_sqrt_n_copy
 };
 
+/*
+ * If x is square, return +sqrt(x).
+ * Otherwise, return -1.
+ * https://www.quora.com/What-is-the-quickest-way-to-determine-if-a-number-is-a-perfect-square
+ */
+static
+#if 0
+long long isqrt(unsigned long long x)
+{
+    /* Precondition: make x odd if possible. */
+    int sh = __builtin_ctzll(x);
+    x >>= (sh&~1);
+
+    /* Early escape. */
+    if (x&6) return -1;
+
+    /* 2-adic Newton */
+    int i;
+    const int ITERATIONS = 5; /* log log x - 1; log LLONG_MAX < 64; log 64 < 5 */
+    unsigned long long z = (3-x)>>1, y=x*z;
+    for (i=0; i<ITERATIONS; i++) {
+        unsigned long long w = (3 - z*y) >> 1;
+        y *= w;
+        z *= w;
+    }
+    /* assert(x==0 || (y*z == 1 && x*z == y)); */
+
+    /* Get the positive square root.  Also the top bit might be wrong. */
+    if (y & (1ull<<62)) y = -y;
+    y &= ~(1ull<<63);
+
+    /* Is it the square root? */
+    if (y >= 1ull<<32) return -1;
+
+    /* Yup. */
+    return y<<(sh/2);
+}
+#else
+long long isqrt(unsigned long long x)
+{
+    unsigned long long y = sqrt(x);
+    if (y*y == x) return y;
+    return -1;
+}
+#endif
+
 gcf * gcf_create_from_sqrt_n(unsigned long long n)
 {
-    if (n == 0ll)
+    long long y = isqrt(n);
+    if (y != -1)
     {
-        static const number_pair zeros = {0ll, 0ll};
-        return gcf_create_from_pairs(&zeros, 1);
-    }
-    else if (n == 1ll)
-    {
-        static const number_pair one_and_zero = {1ll, 0ll};
-        return gcf_create_from_pairs(&one_and_zero, 1);
+        number_pair p[] = {{1ll, y},{1ll, LLONG_MAX}};
+        return gcf_create_from_pairs(p, 2);
     }
     else
     {

@@ -20,7 +20,7 @@ OBJS += $(OBJ_DIR)/gendec.o
 OBJS += $(OBJ_DIR)/float.o
 
 CFLAGS += -Wall -Iinclude
-LDFLAGS += -lgmp
+LDFLAGS += -lgmp -lm
 #OPTS = -O2 -g
 OPTS = -O0 -g
 
