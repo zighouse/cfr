@@ -1,6 +1,6 @@
 /*
  * Calculate continued fraction for a fraction or a real number.
- * 
+ *
  * -- Xie Zhigang, 2016-10-08
  */
 #include <limits.h>
@@ -77,6 +77,9 @@ static void help(char * name)
                     "\n"
                     "    -v, --reverse           convert a continued fraction into fraction\n"
                     "\n"
+                    "        --sqrt              square root\n"
+                    "    -f  --float=precision   generate float expression\n"
+                    "\n"
                     "    -h, --help              display this help\n"
                     "    --version               output version information\n"
                     "    --                      following minus number not parsed as option(s)\n");
@@ -110,6 +113,8 @@ struct context {
     int is_float;
     int is_welformed;
     int is_complete;
+    int prints_float;
+    int find_sqrt;
     int index;
     char show_mod; /* continued, gcd, simple, verbose */
     struct cfstep * steps;
@@ -349,12 +354,14 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             {"simple",    no_argument,       0, 's'},
             {"list",      no_argument,       0, 'l'},
             {"reverse",   no_argument,       0, 'v'},
+            {"sqrt",      no_argument,       0,  0 },
+            {"float",     required_argument, 0, 'f'},
             {"help",      no_argument,       0, 'h'},
             {"version",   no_argument,       0,  0 },
             {0,           0,                 0,  0 }
         };
 
-        c = getopt_long(argc, argv, "m:n:wprcgslvh",
+        c = getopt_long(argc, argv, "m:n:wprcgslvf:h",
                         long_options, &option_index);
         if (c == -1)
         {
@@ -376,6 +383,11 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                 {
                     ctx->limits.max_numerator = n;
                 }
+            }
+            else
+            if (strcmp(long_options[option_index].name, "sqrt") == 0)
+            {
+                ctx->find_sqrt = 1;
             }
             break;
 
@@ -412,6 +424,11 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         case 'g':
         case 's':
         case 'l':
+            ctx->show_mod = c;
+            break;
+
+        case 'f':
+            ctx->prints_float = atoi(optarg);
             ctx->show_mod = c;
             break;
 
@@ -574,12 +591,81 @@ int main(int argc, char ** argv)
     ctx.limits.max_numerator = ctx.limits.max_denominator = LLONG_MAX;
     ctx.limits.max_index = INT_MAX;
     ctx.is_welformed = 1;
+    ctx.find_sqrt = 0;
+    ctx.prints_float = -1;
     ctx.show_mod = '\0';
 
     /* parse options */
     if (parse_options(argc, argv, &ctx) != 0)
     {
         exit(1);
+    }
+
+    if (ctx.find_sqrt)
+    {
+        /* simplify and calculate square root */
+        struct context ctx_simp;
+        fraction f;
+        cf * cfx, *cfy;
+        int is_minus = 0;
+        memcpy(&ctx_simp, &ctx, sizeof(ctx));
+        ctx_simp.show_mod = 's';
+        ctx_simp.find_sqrt = 0;
+        if (ctx_simp.is_float)
+        {
+            if (ctx_simp.den == NULL)
+            {
+                fraction f = rational_best_for(ctx_simp.num);
+                cf_free(ctx_simp.x);
+                ctx_simp.x = cf_create_from_fraction(f);
+            }
+            else
+            {
+                fraction f1 = rational_best_for(ctx_simp.num);
+                fraction f2 = rational_best_for(ctx_simp.den);
+                cf * c1 = cf_create_from_fraction(f1);
+                cf * c2 = cf_create_from_fraction(f2);
+                cf * c  = cf_create_from_bihomographic(c1, c2,
+                                                       0, 1, 0, 0,
+                                                       0, 0, 1, 0);
+                cf_free(ctx_simp.x);
+                ctx_simp.x = c;
+                cf_free(c1);
+                cf_free(c2);
+            }
+        }
+        ctx_simp.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
+        cfr(ctx_simp.x, 0, &ctx_simp.limits, cfrcb_accept_simp, &ctx_simp);
+        f = ctx_simp.steps->t.convergent;
+        if (f.n < 0)
+        {
+            is_minus = 1;
+            f.n = -f.n;
+        }
+        cf_free(ctx.x);
+        cfx = cf_create_from_sqrt_n(f.n);
+        if (f.d == 1ll)
+        {
+            ctx.x = cfx;
+        }
+        else
+        {
+            cfy = cf_create_from_sqrt_n(f.d);
+            ctx.x = cf_create_from_bihomographic(cfx, cfy, 0, (is_minus? -1 : 1), 0, 0,
+                                                 0, 0, 1, 0);
+            cf_free(cfx);
+            cf_free(cfy);
+        }
+        ctx.is_float = 0;
+        if (ctx.limits.max_index == INT_MAX)
+        {
+            ctx.limits.max_index = 100;
+        }
+        if (ctx.prints_float >= 0)
+            ctx.show_mod = 'f';
+        else
+            ctx.show_mod = 'c';
+        ctx.is_welformed = 0;
     }
 
     switch (ctx.show_mod)
@@ -589,6 +675,11 @@ int main(int argc, char ** argv)
         if (ctx.is_float)
         {
             fprintf(stderr, "calculating gcd from float numbers is unsupported.");
+            exit(1);
+        }
+        else if (ctx.find_sqrt)
+        {
+            fprintf(stderr, "calculating gcd from square root is unsupported.");
             exit(1);
         }
         gcd = cf_get_gcd(ctx.rat.n, ctx.rat.d);
@@ -658,6 +749,16 @@ int main(int argc, char ** argv)
         else
         {
             cfr(ctx.x, gcd, &ctx.limits, cfrcb_print_verb, &ctx);
+        }
+        break;
+    case 'f':
+        {
+            char * fl = cf_convert_to_string_float(ctx.x, ctx.prints_float);
+            if (fl)
+            {
+                printf("%s\n", fl);
+                free(fl);
+            }
         }
         break;
     case 'r':
