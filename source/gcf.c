@@ -153,7 +153,7 @@ static long long ghomo_next_term(cf *g)
             mpz_mul(t1, c, t4);
             mpz_mul(t2, h->d, t3);
             mpz_add(h->c, t1, t2);
-            
+
             mpz_set(h->d, c);
         }
     }
@@ -318,7 +318,7 @@ cf * cf_create_from_pi(void)
 }
 
 /*
- * one algorithm to calculate sqrt(n) (not the best one)
+ * one algorithm to calculate sqrt(n)
  *
  *                     n - 1
  * sqrt(n) = 1 + --------------------
@@ -329,13 +329,25 @@ cf * cf_create_from_pi(void)
  *                            n - 1
  *                       2 + --------
  *                           2 + ...
- *        = gcf({1,1},{n-1,2},{n-1,2},{n-1,2}...)
+ *        = gcf({1,1},{n-1,2},{n-1,2},{n-1,2},...)
+ *
+ * let m*m is the max square number less then or equal to n,
+ *
+ *                    n - m*m
+ * sqrt(n) = m + -------------------
+ *                       n - m*m
+ *               2m + --------------
+ *                          n - m*m
+ *                    2m + ---------
+ *                         2m + ...
+ *        = gcf({1,m},{n-m*m,2m},{n-m*m,2m},...)
  */
 typedef struct _gcf_sqrt_n gcf_sqrt_n;
 static gcf_class _gcf_sqrt_n_class;
 struct _gcf_sqrt_n {
     gcf base;
-    unsigned long long n_minus_one;
+    unsigned long long m;
+    unsigned long long n_minus_mm;
     int got_first;
 };
 
@@ -344,12 +356,12 @@ static number_pair gcf_sqrt_n_next_term(gcf *g)
     gcf_sqrt_n * sqrt_n = (gcf_sqrt_n*)g;
     if (sqrt_n->got_first)
     {
-        return (number_pair){sqrt_n->n_minus_one, 2ll};
+        return (number_pair){sqrt_n->n_minus_mm, 2 * sqrt_n->m};
     }
     else
     {
         sqrt_n->got_first = 1;
-        return (number_pair){1, 1};
+        return (number_pair){1, sqrt_n->m};
     }
 }
 
@@ -366,7 +378,7 @@ static void gcf_sqrt_n_free(gcf *g)
 static gcf * gcf_sqrt_n_copy(const gcf *g)
 {
     gcf_sqrt_n * sqrt_n = (gcf_sqrt_n*)g;
-    return gcf_create_from_sqrt_n(sqrt_n->n_minus_one + 1ll);
+    return gcf_create_from_sqrt_n(sqrt_n->n_minus_mm + sqrt_n->m * sqrt_n->m);
 }
 
 static gcf_class _gcf_sqrt_n_class = {
@@ -376,58 +388,13 @@ static gcf_class _gcf_sqrt_n_class = {
     gcf_sqrt_n_copy
 };
 
-/*
- * If x is square, return +sqrt(x).
- * Otherwise, return -1.
- * https://www.quora.com/What-is-the-quickest-way-to-determine-if-a-number-is-a-perfect-square
- */
-static
-#if 0
-long long isqrt(unsigned long long x)
-{
-    /* Precondition: make x odd if possible. */
-    int sh = __builtin_ctzll(x);
-    x >>= (sh&~1);
-
-    /* Early escape. */
-    if (x&6) return -1;
-
-    /* 2-adic Newton */
-    int i;
-    const int ITERATIONS = 5; /* log log x - 1; log LLONG_MAX < 64; log 64 < 5 */
-    unsigned long long z = (3-x)>>1, y=x*z;
-    for (i=0; i<ITERATIONS; i++) {
-        unsigned long long w = (3 - z*y) >> 1;
-        y *= w;
-        z *= w;
-    }
-    /* assert(x==0 || (y*z == 1 && x*z == y)); */
-
-    /* Get the positive square root.  Also the top bit might be wrong. */
-    if (y & (1ull<<62)) y = -y;
-    y &= ~(1ull<<63);
-
-    /* Is it the square root? */
-    if (y >= 1ull<<32) return -1;
-
-    /* Yup. */
-    return y<<(sh/2);
-}
-#else
-long long isqrt(unsigned long long x)
-{
-    unsigned long long y = sqrt(x);
-    if (y*y == x) return y;
-    return -1;
-}
-#endif
-
 gcf * gcf_create_from_sqrt_n(unsigned long long n)
 {
-    long long y = isqrt(n);
-    if (y != -1)
+    unsigned long long m = (unsigned long long)sqrt(n);
+    unsigned long long n_minus_mm = n - m * m;
+    if (n_minus_mm == 0)
     {
-        number_pair p[] = {{1ll, y},{1ll, LLONG_MAX}};
+        number_pair p[] = {{1ll, m},{1ll, LLONG_MAX}};
         return gcf_create_from_pairs(p, 2);
     }
     else
@@ -435,7 +402,8 @@ gcf * gcf_create_from_sqrt_n(unsigned long long n)
         gcf_sqrt_n * sqrt_n = (gcf_sqrt_n*)malloc(sizeof(gcf_sqrt_n));
         if (!sqrt_n)
             return NULL;
-        sqrt_n->n_minus_one = n - 1;
+        sqrt_n->m = m;
+        sqrt_n->n_minus_mm = n_minus_mm;
         sqrt_n->got_first = 0;
         sqrt_n->base.object_class = &_gcf_sqrt_n_class;
         return &sqrt_n->base;
