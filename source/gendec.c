@@ -177,6 +177,7 @@ cf_digit_gen * cf_digit_gen_create_dec(const cf * x)
     mpz_init_set_ui(g->c, 0u);
     mpz_init_set_ui(g->d, 1u);
     g->x = cf_copy(x);
+    g->sgn = 0;
     g->base.object_class = &_cf_digit_gen_dec_class;
     return &g->base;
 }
@@ -185,7 +186,7 @@ char * cf_convert_to_string_float(const cf *c, int max_digits)
 {
     cf_digit_gen * gen;
     char buf[64], *p, *result;
-    int size, count, digit;
+    int size, count, digit, got_dot = 0;
     int realloced = 0;
 
     p = buf;
@@ -212,9 +213,14 @@ char * cf_convert_to_string_float(const cf *c, int max_digits)
         {
             snprintf(p + count + chars, size - count - chars, ".");
             ++count;
+            got_dot = 1;
+            max_digits++;
         }
         count += chars;
-        max_digits -= chars - sgn;
+        if (got_dot)
+        {
+            max_digits -= chars - sgn;
+        }
         // reallocate new buffer to contain the too long string.
         if (count > size - 5)
         {
