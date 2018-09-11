@@ -372,7 +372,7 @@ static int test_case_convert_from_float(void)
     char * str;
 
     c = cf_create_from_float(pi);
-    str = cf_convert_to_string_float(c, strlen("3141592653589793"));
+    str = cf_convert_to_string_float(c, strlen("141592653589793"));
     ASSERT( strcmp(str, "3.141592653589793...") == 0 );
 
     cf_free(c);
@@ -480,7 +480,7 @@ static int test_case_convert_string_float(void)
         cf *c = cf_create_from_terms_i(2, 2, 3);
         char * fl = cf_convert_to_string_float(c, 10);
 
-        ASSERT( strcmp(fl, "2.333333333..." ) == 0 );
+        ASSERT( strcmp(fl, "2.3333333333..." ) == 0 );
 
         free(fl);
         cf_free(c);
@@ -490,7 +490,7 @@ static int test_case_convert_string_float(void)
         cf *c = cf_create_from_terms_i(3, 2, 3, 4);
         char * fl = cf_convert_to_string_float(c, 10);
 
-        ASSERT( strcmp(fl, "2.307692307..." ) == 0 );
+        ASSERT( strcmp(fl, "2.3076923076..." ) == 0 );
 
         free(fl);
         cf_free(c);
@@ -500,7 +500,7 @@ static int test_case_convert_string_float(void)
         cf *c = cf_create_from_terms_i(5, 2, 3, 4, 5, 6);
         char * fl = cf_convert_to_string_float(c, 10);
 
-        ASSERT( strcmp(fl, "2.308788598..." ) == 0 );
+        ASSERT( strcmp(fl, "2.3087885985..." ) == 0 );
 
         free(fl);
         cf_free(c);
@@ -530,7 +530,7 @@ static int test_case_convert_string_float(void)
         cf *c = cf_create_from_terms_i(3, -1, 2, 3);
         char * fl = cf_convert_to_string_float(c, 10);
 
-        ASSERT( strcmp(fl, "-0.571428571..." ) == 0 );
+        ASSERT( strcmp(fl, "-0.5714285714..." ) == 0 );
 
         free(fl);
         cf_free(c);
@@ -540,7 +540,7 @@ static int test_case_convert_string_float(void)
         cf *c = cf_create_from_terms_i(4, -1, 2, 3, 4);
         char * fl = cf_convert_to_string_float(c, 10);
 
-        ASSERT( strcmp(fl, "-0.566666666..." ) == 0 );
+        ASSERT( strcmp(fl, "-0.5666666666..." ) == 0 );
 
         free(fl);
         cf_free(c);
