@@ -319,19 +319,7 @@ cf * cf_create_from_pi(void)
 
 /*
  * one algorithm to calculate sqrt(n)
- *
- *                     n - 1
- * sqrt(n) = 1 + --------------------
- *                        n - 1
- *               2 + ----------------
- *                          n - 1
- *                   2 + ------------
- *                            n - 1
- *                       2 + --------
- *                           2 + ...
- *        = gcf({1,1},{n-1,2},{n-1,2},{n-1,2},...)
- *
- * let m*m is the max square number less then or equal to n,
+ * let m*m is the max square less then or equal to n,
  *
  *                    n - m*m
  * sqrt(n) = m + -------------------
@@ -417,3 +405,233 @@ cf * cf_create_from_sqrt_n(unsigned long long n)
     cf_free(g);
     return c;
 }
+
+/*
+ * Create a GCF which the value is n-th root of v.
+ *
+ * v^{m/n} = (a^n + b)^{m/n}
+ *                                       mb
+ *         = a^m + ----------------------------------------------------
+ *                                          (n-m)b
+ *                 na^{n-m} + -----------------------------------------
+ *                                              (n+m)b
+ *                            2a^m + ----------------------------------
+ *                                                     (2n-m)b
+ *                                   3na^{n-m} + ----------------------
+ *                                                          (2n+m)b
+ *                                               2a^m + ---------------
+ *                                                      5na^{n-m} + ...
+ *
+ * (integers: 0 < m < n)
+ *
+ * http://myreckonings.com/Dead_Reckoning/Online/Materials/General%20Method%20for%20Extracting%20Roots.pdf
+ */
+typedef struct _gcf_nth gcf_nth;
+static gcf_class _gcf_nth_class;
+struct _gcf_nth {
+    gcf base;
+    unsigned long long am2; /* 2*a^m */
+    unsigned long long anmn; /* na^{n-m} */
+    unsigned long long bn; /* nb */
+    unsigned long long bm; /* mb */
+    unsigned long n;
+    unsigned long m;
+    unsigned long idx; /* term index */
+};
+
+static number_pair gcf_nth_next_term(gcf *g)
+{
+    gcf_nth * nth = (gcf_nth*)g;
+    number_pair pair = {0};
+    if (nth->idx == 0)
+    {
+        pair.a = 1;
+        pair.b = nth->am2/2;
+    }
+    else if (nth->idx == 1)
+    {
+        pair.a = nth->bm;
+        pair.b = nth->anmn;
+    }
+    else if (nth->idx % 2 == 0)
+    {
+        pair.a = (nth->idx / 2) * nth->bn - nth->bm;
+        pair.b = nth->am2;
+    }
+    else
+    {
+        pair.a = (nth->idx / 2) * nth->bn + nth->bm;
+        pair.b = nth->idx * nth->anmn;
+    }
+    nth->idx++;
+    return pair;
+}
+
+static int gcf_nth_is_finished(const gcf *g)
+{
+    return 0;
+}
+
+static void gcf_nth_free(gcf *g)
+{
+    free(g);
+}
+
+static gcf * gcf_nth_copy(const gcf *g)
+{
+    gcf_nth* nth = (gcf_nth*)g;
+    gcf_nth* nth_new = (gcf_nth*)malloc(sizeof(gcf_nth));
+    memcpy(nth_new, nth, sizeof(gcf_nth));
+    nth_new->idx = 0;
+    return &nth_new->base;
+}
+
+static gcf_class _gcf_nth_class = {
+    gcf_nth_next_term,
+    gcf_nth_is_finished,
+    gcf_nth_free,
+    gcf_nth_copy
+};
+
+/**
+ * find a: a^n <= v; (a+1)^n > v;
+ */
+static int find_power(unsigned long long v, unsigned long n,
+                      unsigned long long *a, unsigned long long *b)
+{
+    unsigned long long lo = 1;
+    unsigned long long hi = v;
+    unsigned long long md = (1 + v)/2;
+    unsigned long long pow_n_md = md;
+    while (1)
+    {
+        unsigned long m = n;
+        while (m > 1)
+        {
+            pow_n_md *= md;
+            m--;
+        }
+        if (v == pow_n_md)
+        {
+            /* found */
+            *a = md;
+            *b = 0;
+            return 1;
+        }
+        else if (v > pow_n_md)
+        {
+            lo = md;
+            md = (md + hi)/2;
+            if (hi == lo + 1)
+            {
+                /* found */
+                *a = lo;
+                *b = v - pow_n_md;
+                return 0;
+            }
+            pow_n_md = md;
+        }
+        else
+        {
+            hi = md;
+            md = (lo + md)/2;
+            pow_n_md = md;
+            if (hi == lo + 1)
+            {
+                /* found */
+                *a = lo;
+                unsigned long m = n;
+                while (m > 1)
+                {
+                    pow_n_md *= md;
+                    m--;
+                }
+                *b = v - pow_n_md;
+                return 0;
+            }
+        }
+    }
+    *a = *b = 0;
+    return 0;
+}
+
+gcf * gcf_create_from_nth_root(unsigned long long v, unsigned long n, unsigned long m)
+{
+    unsigned long long gcd;
+    if (m > n)
+    {
+        /* TODO calculate power, not root */
+        return NULL;
+    }
+
+    gcd = cf_get_gcd(n, m);
+    if (gcd > 1)
+    {
+        n /= gcd;
+        m /= gcd;
+    }
+
+    if (n == 1 || v == 1)
+    {
+        number_pair p[] = {{1ll, v}, {1ll, LLONG_MAX}};
+        return gcf_create_from_pairs(p, 2);
+    }
+    else if (n == 2)
+    {
+        return gcf_create_from_sqrt_n(v);
+    }
+    else
+    {
+        unsigned long long a, b;
+        if (find_power(v, n, &a, &b))
+        {
+            number_pair p[] = {{1ll, a}, {1ll, LLONG_MAX}};
+            return gcf_create_from_pairs(p, 2);
+        }
+        else
+        {
+            unsigned long i;
+            unsigned long end1 = n-m;
+            unsigned long end2 = m;
+            unsigned long end = end1 > end2 ? end1 : end2;
+            unsigned long long aa = 1;
+            gcf_nth * nth = (gcf_nth*)malloc(sizeof(gcf_nth));
+            if (!nth)
+                return NULL;
+            for (i = 1; i <= end; i++)
+            {
+                aa *= a;
+                if (i == end1)
+                {
+                    nth->anmn = aa * n;
+                }
+                if (i == end2)
+                {
+                    nth->am2 = aa * 2;
+                }
+            }
+            nth->bn = b * n;
+            nth->bm = b * m;
+            nth->n = n;
+            nth->m = m;
+            nth->idx = 0;
+            nth->base.object_class = &_gcf_nth_class;
+
+            return &nth->base;
+        }
+    }
+}
+
+cf * cf_create_from_nth_root(unsigned long long v, unsigned long n, unsigned long m)
+{
+    gcf * g = gcf_create_from_nth_root(v, n, m);
+    cf * c;
+    if (!g)
+    {
+        return NULL;
+    }
+    c = cf_create_from_ghomo(g, 1, 0, 0, 1);
+    cf_free(g);
+    return c;
+}
+

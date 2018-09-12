@@ -362,6 +362,42 @@ static int test_case_calculate_sqrt_5(void)
         free(s);
         free(s2);
     }
+    {
+        cf  *c = cf_create_from_nth_root(5ll, 3, 1);
+        char * s = cf_convert_to_string_float(c, 100);
+        int idx = 10000;
+
+        printf("\n  calulate 5^{1/3} to 100 digits as:\n  %s\n", s);
+
+        printf("  cf(5^{1/3}): ");
+        while (!cf_is_finished(c) && idx > 0)
+        {
+            printf(" %lld", cf_next_term(c));
+            idx --;
+        }
+        printf("\n");
+
+        cf_free(c);
+        free(s);
+    }
+    {
+        cf  *c = cf_create_from_nth_root(5ll, 3, 2);
+        char * s = cf_convert_to_string_float(c, 100);
+        int idx = 10000;
+
+        printf("\n  calulate 5^{2/3} to 100 digits as:\n  %s\n", s);
+
+        printf("  cf(5^{2/3}): ");
+        while (!cf_is_finished(c) && idx>0)
+        {
+            printf(" %lld", cf_next_term(c));
+            idx--;
+        }
+        printf("\n");
+
+        cf_free(c);
+        free(s);
+    }
     return 0;
 }
 

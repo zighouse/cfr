@@ -348,6 +348,13 @@ cf * cf_create_from_pi(void);
 cf * cf_create_from_sqrt_n(unsigned long long n);
 
 /*
+ * Create a CF which the value is v^{m/n}. (m < n)
+ *
+ * Need to be freed by `cf_free()' helper macro.
+ */
+cf * cf_create_from_nth_root(unsigned long long v, unsigned long n, unsigned long m);
+
+/*
  * Generalized continued fraction.
  *
  *                        a1
@@ -449,22 +456,44 @@ gcf * gcf_create_from_pi(void);
  *
  * Returns an expression of sqrt(n):
  *
- *                     n - 1
- * sqrt(n) = 1 + --------------------
- *                        n - 1
- *               2 + ----------------
- *                          n - 1
- *                   2 + ------------
- *                            n - 1
- *                       2 + --------
- *                           2 + ...
- *        = gcf({1,1},{n-1,2},{n-1,2},{n-1,2}...)
+ * let m*m is the max square less then or equal to n,
+ *
+ *                    n - m*m
+ * sqrt(n) = m + -------------------
+ *                       n - m*m
+ *               2m + --------------
+ *                          n - m*m
+ *                    2m + ---------
+ *                         2m + ...
+ *        = gcf({1,m},{n-m*m,2m},{n-m*m,2m},...)
  *
  * This GCF expression is not the best one to calculate sqrt.
  *
  * Need to be freed by `cf_free()' helper macro.
  */
 gcf * gcf_create_from_sqrt_n(unsigned long long n);
+
+/*
+ * Create a GCF which the value is n-th root of v.
+ *
+ * v^{m/n} = (a^n + b)^{m/n}
+ *                                       mb
+ *         = a^m + ----------------------------------------------------
+ *                                          (n-m)b
+ *                 na^{n-m} + -----------------------------------------
+ *                                              (n+m)b
+ *                            2a^m + ----------------------------------
+ *                                                     (2n-m)b
+ *                                   3na^{n-m} + ----------------------
+ *                                                          (2n+m)b
+ *                                               2a^m + ---------------
+ *                                                      5na^{n-m} + ...
+ *
+ * (integers: 0 < m < n)
+ *
+ * http://myreckonings.com/Dead_Reckoning/Online/Materials/General%20Method%20for%20Extracting%20Roots.pdf
+ */
+gcf * gcf_create_from_nth_root(unsigned long long v, unsigned long n, unsigned long m);
 
 /*
  * Create a GCF from a float pointer number expressed in a string.

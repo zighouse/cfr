@@ -78,6 +78,7 @@ static void help(char * name)
                     "    -v, --reverse           convert a continued fraction into fraction\n"
                     "\n"
                     "        --sqrt              square root\n"
+                    "        --root=m/n          root of {}^{m/n}\n"
                     "    -f  --float=precision   generate float expression\n"
                     "\n"
                     "    -h, --help              display this help\n"
@@ -114,8 +115,8 @@ struct context {
     int is_welformed;
     int is_complete;
     int prints_float;
-    int find_sqrt;
-    int index;
+    int find_root; /* 1-sqrt, 2-root */
+    int index, root_m, root_n;
     char show_mod; /* continued, gcd, simple, verbose */
     struct cfstep * steps;
     char * num, * den;
@@ -355,6 +356,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             {"list",      no_argument,       0, 'l'},
             {"reverse",   no_argument,       0, 'v'},
             {"sqrt",      no_argument,       0,  0 },
+            {"root",      required_argument, 0,  0 },
             {"float",     required_argument, 0, 'f'},
             {"help",      no_argument,       0, 'h'},
             {"version",   no_argument,       0,  0 },
@@ -387,7 +389,26 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             else
             if (strcmp(long_options[option_index].name, "sqrt") == 0)
             {
-                ctx->find_sqrt = 1;
+                ctx->find_root = 1;
+            }
+            else
+            if (strcmp(long_options[option_index].name, "root") == 0)
+            {
+                int n = 1, m = 1;
+                n = atoll(optarg);
+                if (strchr(optarg, '/'))
+                {
+                    m = n;
+                    n = atoll(strchr(optarg, '/') + 1);
+                }
+                if (m > n)
+                {
+                    fprintf(stderr, "root of {}^{%d/%d} not supported\n", m, n);
+                    exit(1);
+                }
+                ctx->root_n = n;
+                ctx->root_m = m;
+                ctx->find_root = 2;
             }
             break;
 
@@ -591,7 +612,9 @@ int main(int argc, char ** argv)
     ctx.limits.max_numerator = ctx.limits.max_denominator = LLONG_MAX;
     ctx.limits.max_index = INT_MAX;
     ctx.is_welformed = 1;
-    ctx.find_sqrt = 0;
+    ctx.find_root = 0;
+    ctx.root_m = 1;
+    ctx.root_n = 1;
     ctx.prints_float = -1;
     ctx.show_mod = '\0';
 
@@ -601,7 +624,7 @@ int main(int argc, char ** argv)
         exit(1);
     }
 
-    if (ctx.find_sqrt)
+    if (ctx.find_root)
     {
         /* simplify and calculate square root */
         struct context ctx_simp;
@@ -610,7 +633,7 @@ int main(int argc, char ** argv)
         int is_minus = 0;
         memcpy(&ctx_simp, &ctx, sizeof(ctx));
         ctx_simp.show_mod = 's';
-        ctx_simp.find_sqrt = 0;
+        ctx_simp.find_root = 0;
         if (ctx_simp.is_float)
         {
             if (ctx_simp.den == NULL)
@@ -643,14 +666,20 @@ int main(int argc, char ** argv)
             f.n = -f.n;
         }
         cf_free(ctx.x);
-        cfx = cf_create_from_sqrt_n(f.n);
+        if (ctx.find_root == 1)
+            cfx = cf_create_from_sqrt_n(f.n);
+        else
+            cfx = cf_create_from_nth_root(f.n, ctx.root_n, ctx.root_m);
         if (f.d == 1ll)
         {
             ctx.x = cfx;
         }
         else
         {
-            cfy = cf_create_from_sqrt_n(f.d);
+            if (ctx.find_root == 1)
+                cfy = cf_create_from_sqrt_n(f.d);
+            else
+                cfy = cf_create_from_nth_root(f.d, ctx.root_n, ctx.root_m);
             ctx.x = cf_create_from_bihomographic(cfx, cfy, 0, (is_minus? -1 : 1), 0, 0,
                                                  0, 0, 1, 0);
             cf_free(cfx);
@@ -677,9 +706,9 @@ int main(int argc, char ** argv)
             fprintf(stderr, "calculating gcd from float numbers is unsupported.");
             exit(1);
         }
-        else if (ctx.find_sqrt)
+        else if (ctx.find_root)
         {
-            fprintf(stderr, "calculating gcd from square root is unsupported.");
+            fprintf(stderr, "calculating gcd from root is unsupported.");
             exit(1);
         }
         gcd = cf_get_gcd(ctx.rat.n, ctx.rat.d);
