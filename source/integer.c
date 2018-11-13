@@ -1,3 +1,9 @@
+/**
+ * implementation of integer and related operations.
+ *
+ * \author xiezhigang
+ * \date 2018-11-13
+ */
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>

@@ -1,3 +1,9 @@
+/**
+ * high precision bihomographic function implementation.
+ *
+ * \author xiezhigang
+ * \date 2018-11-13
+ */
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
