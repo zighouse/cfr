@@ -365,7 +365,7 @@ static int test_case_calculate_sqrt_5(void)
     {
         cf  *c = cf_create_from_nth_root(5ll, 3, 1);
         char * s = cf_convert_to_string_float(c, 100);
-        int idx = 10000;
+        int idx = 100;
 
         printf("\n  calulate 5^{1/3} to 100 digits as:\n  %s\n", s);
 
@@ -383,7 +383,7 @@ static int test_case_calculate_sqrt_5(void)
     {
         cf  *c = cf_create_from_nth_root(5ll, 3, 2);
         char * s = cf_convert_to_string_float(c, 100);
-        int idx = 10000;
+        int idx = 100;
 
         printf("\n  calulate 5^{2/3} to 100 digits as:\n  %s\n", s);
 

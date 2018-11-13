@@ -8,8 +8,16 @@ void mpz_set_ull (mpz_t z, unsigned long long ull)
 unsigned long long mpz_get_ull(mpz_t z)
 {
     unsigned long long result = 0;
-    mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
-    return result;
+    size_t bytes = (mpz_sizeinbase(z, 16) + 1) / 2;
+    if (sizeof(result) > bytes)
+    {
+        mpz_export(&result, 0, -1, sizeof result, 0, 0, z);
+        return result;
+    }
+    else
+    {
+        return LLONG_MAX;
+    }
 }
 
 void mpz_set_ll(mpz_t z, long long sll)

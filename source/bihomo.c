@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 #include "cf.h"
+#include "common.h"
+#include "integer.h"
 
 static cf_class _bihomographic_class;
 

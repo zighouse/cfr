@@ -78,6 +78,7 @@ static void help(char * name)
                     "    -v, --reverse           convert a continued fraction into fraction\n"
                     "\n"
                     "        --sqrt              square root\n"
+                    "        --int-bits=bits     integer precision in bits to calculate bihomographic\n"
                     "        --root=m/n          root of {}^{m/n}\n"
                     "    -f  --float=precision   generate float expression\n"
                     "\n"
@@ -116,6 +117,7 @@ struct context {
     int is_complete;
     int prints_float;
     int find_root; /* 1-sqrt, 2-root */
+    unsigned int_bits;
     int index, root_m, root_n;
     char show_mod; /* continued, gcd, simple, verbose */
     struct cfstep * steps;
@@ -356,6 +358,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             {"list",      no_argument,       0, 'l'},
             {"reverse",   no_argument,       0, 'v'},
             {"sqrt",      no_argument,       0,  0 },
+            {"int-bits",  required_argument, 0,  0 },
             {"root",      required_argument, 0,  0 },
             {"float",     required_argument, 0, 'f'},
             {"help",      no_argument,       0, 'h'},
@@ -390,6 +393,11 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             if (strcmp(long_options[option_index].name, "sqrt") == 0)
             {
                 ctx->find_root = 1;
+            }
+            else
+            if (strcmp(long_options[option_index].name, "int-bits") == 0)
+            {
+                ctx->int_bits = (unsigned)atoi(optarg);
             }
             else
             if (strcmp(long_options[option_index].name, "root") == 0)
@@ -559,7 +567,10 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
                 cfy = cf_create_from_string_float(ctx->den);
                 if (ctx->is_float)
                 {
-                    ctx->x = cf_create_from_bihomographic(cfx, cfy, 0, 1, 0, 0, 0, 0, 1, 0);
+                    if (ctx->int_bits < 64)
+                        ctx->x = cf_create_from_bihomographic(cfx, cfy, 0, 1, 0, 0, 0, 0, 1, 0);
+                    else
+                        ctx->x = cf_create_from_bihomo_pre(cfx, cfy, 0, 1, 0, 0, 0, 0, 1, 0, ctx->int_bits);
                     cf_free(cfx);
                     cf_free(cfy);
                 }
@@ -613,6 +624,7 @@ int main(int argc, char ** argv)
     ctx.limits.max_index = INT_MAX;
     ctx.is_welformed = 1;
     ctx.find_root = 0;
+    ctx.int_bits = 63;
     ctx.root_m = 1;
     ctx.root_n = 1;
     ctx.prints_float = -1;
@@ -648,9 +660,15 @@ int main(int argc, char ** argv)
                 fraction f2 = rational_best_for(ctx_simp.den);
                 cf * c1 = cf_create_from_fraction(f1);
                 cf * c2 = cf_create_from_fraction(f2);
-                cf * c  = cf_create_from_bihomographic(c1, c2,
-                                                       0, 1, 0, 0,
-                                                       0, 0, 1, 0);
+                cf * c;
+                if (ctx.int_bits < 64)
+                    c  = cf_create_from_bihomographic(c1, c2,
+                                                      0, 1, 0, 0,
+                                                      0, 0, 1, 0);
+                else
+                    c  = cf_create_from_bihomo_pre(c1, c2,
+                                                   0, 1, 0, 0,
+                                                   0, 0, 1, 0, ctx.int_bits);
                 cf_free(ctx_simp.x);
                 ctx_simp.x = c;
                 cf_free(c1);
@@ -680,8 +698,12 @@ int main(int argc, char ** argv)
                 cfy = cf_create_from_sqrt_n(f.d);
             else
                 cfy = cf_create_from_nth_root(f.d, ctx.root_n, ctx.root_m);
-            ctx.x = cf_create_from_bihomographic(cfx, cfy, 0, (is_minus? -1 : 1), 0, 0,
-                                                 0, 0, 1, 0);
+            if (ctx.int_bits < 64)
+                ctx.x = cf_create_from_bihomographic(cfx, cfy, 0, (is_minus? -1 : 1), 0, 0,
+                                                     0, 0, 1, 0);
+            else
+                ctx.x = cf_create_from_bihomo_pre(cfx, cfy, 0, (is_minus? -1 : 1), 0, 0,
+                                                  0, 0, 1, 0, ctx.int_bits);
             cf_free(cfx);
             cf_free(cfy);
         }
@@ -732,9 +754,15 @@ int main(int argc, char ** argv)
                     fraction f2 = rational_best_for(ctx.den);
                     cf * c1 = cf_create_from_fraction(f1);
                     cf * c2 = cf_create_from_fraction(f2);
-                    cf * c  = cf_create_from_bihomographic(c1, c2,
-                                                           0, 1, 0, 0,
-                                                           0, 0, 1, 0);
+                    cf * c;
+                    if (ctx.int_bits < 64)
+                        c  = cf_create_from_bihomographic(c1, c2,
+                                                          0, 1, 0, 0,
+                                                          0, 0, 1, 0);
+                    else
+                        c  = cf_create_from_bihomo_pre(c1, c2,
+                                                       0, 1, 0, 0,
+                                                       0, 0, 1, 0, ctx.int_bits);
                     cf_free(ctx.x);
                     ctx.x = c;
                     cf_free(c1);

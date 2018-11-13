@@ -330,6 +330,31 @@ cf * cf_create_from_bihomographic(const cf * x, const cf * y,
                                   long long g, long long h);
 
 /*
+ * Create a continued fraction from bihomograhic function with large
+ * integers of precision greater than 64-bits.
+ *
+ * cf_create_from_bihomographic() function only use integers of
+ * precision 63-bits to do inner calculates (plus one bit for sign to
+ * gain 64-bits). It is often needs more bits to holds results of inner
+ * calculations to gain more items of continued fraction which created
+ * from a bihomograhic function.
+ *
+ * For example to calculate sqrt( 3 / 13), using previous function to get:
+ * [0 2 12 4 12 4 12 4 12 4 12 4 12 4 12 4 12 4 12 4 12] with 21 items;
+ * Using 64-bits precision to get 23 items:
+ * [0 2 12 4 12 4 12 4 12 4 12 4 12 4 12 4 12 4 12 4 12 4 18];
+ * Using 128-bits precision to get 45 items: [0 2 12 4 12 ... 4 12];
+ * Using 256-bits precision to get 91 items: [0 2 12 4 12 ... 12 4 14];
+ * Using 1024-bits precision to get 362 items: [0 2 12 4 12 ... 12 4].
+ * Using 2048-bits precision to get 725 items: [0 2 12 4 12 ... 12 4 13].
+ */
+cf * cf_create_from_bihomo_pre(const cf * x, const cf * y,
+                               long long a, long long b,
+                               long long c, long long d,
+                               long long e, long long f,
+                               long long g, long long h,
+                               unsigned precision);
+/*
  * Create a CF which the value is `pi'.
  *
  * Implemented by using function `gcf_create_from_pi()'.
