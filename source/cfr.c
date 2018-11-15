@@ -97,6 +97,7 @@ static void help(char * name)
     fprintf(stderr, "    %s -c -p -n 18 2.71828182845964\n", name);
     fprintf(stderr, "    %s -l 1920 1080\n", name);
     fprintf(stderr, "    %s -cp -- -16 9\n", name);
+    fprintf(stderr, "    %s -n400 --int-bits=1024 --sqrt 3 13\n", name);
     fprintf(stderr, "\nReport bugs to: http://github.com/zighouse/cfr/issues .\n");
 }
 
