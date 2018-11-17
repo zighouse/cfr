@@ -644,6 +644,8 @@ int main(int argc, char ** argv)
         cf * cfx, *cfy;
         int is_minus = 0;
         memcpy(&ctx_simp, &ctx, sizeof(ctx));
+        if (ctx.x)
+            ctx_simp.x = cf_copy(ctx.x);
         ctx_simp.show_mod = 's';
         ctx_simp.find_root = 0;
         if (ctx_simp.is_float)
