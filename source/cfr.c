@@ -61,9 +61,9 @@ static int cfr(cf * x, long long gcd, settings *limits, cfrcb print, void * data
 static void help(char * name)
 {
     fprintf(stderr, "Usage: %s [OPTIONS] NUMERATOR [[/] DENOMINATOR]\n", name);
-    fprintf(stderr, "    -m, --maxden=integer    maximum denominator\n"
-                    "        --maxnum=integer    maximum numerator\n"
-                    "    -n, --number=integer    maximum number of contined fraction coeffs\n"
+    fprintf(stderr, "    -m, --maxden=integer    max denominator\n"
+                    "        --maxnum=integer    max numerator\n"
+                    "    -n, --number=integer    max number of continued fraction coeffs\n"
                     "\n"
                     "    -w, --welformed         welformed style\n"
                     "    -p, --plain             plain style\n"
@@ -118,7 +118,7 @@ struct context {
     int is_complete;
     int prints_float;
     int find_root; /* 1-sqrt, 2-root */
-    unsigned int_bits;
+    int int_bits;
     int index, root_m, root_n;
     char show_mod; /* continued, gcd, simple, verbose */
     struct cfstep * steps;
@@ -154,9 +154,10 @@ static void cfrcb_print_verb(cf_converg_term *t, long long gcd, void * data)
 static void cfrcb_collect_steps(cf_converg_term *t, long long gcd, void * data)
 {
     struct context * ctx = (struct context*) data;
-    struct cfstep * step = (struct cfstep*)malloc(sizeof(struct cfstep));
+    struct cfstep * step = (struct cfstep*)calloc(1, sizeof(struct cfstep));
     step->t = *t;
     step->gcd = gcd;
+    step->prev = NULL;
     step->next = ctx->steps;
     if (ctx->steps)
     {
@@ -164,6 +165,18 @@ static void cfrcb_collect_steps(cf_converg_term *t, long long gcd, void * data)
     }
     ctx->steps = step;
     ++ctx->index;
+}
+
+static void cfr_ctx_free_steps(struct context* ctx)
+{
+    struct cfstep * step = ctx->steps;
+    ctx->steps = NULL;
+    while (step)
+    {
+        struct cfstep * next = step->next;
+        free(step);
+        step = next;
+    }
 }
 
 // print welformed list
@@ -244,7 +257,7 @@ static void print_welformed_cont(void *data)
     }
 
     /* collect range fields of denominators */
-    fields = (struct range*)malloc(sizeof(struct range) * (ctx->index + 1));
+    fields = (struct range*)calloc(ctx->index + 1, sizeof(struct range));
     fields[ctx->index].offset = 0;
     fields[ctx->index].text = strdup("...");
     fields[ctx->index].length = 3;
@@ -337,6 +350,84 @@ static void print_report(int argc, char ** argv, void *data)
 }
 
 // {{{ parse options
+typedef enum {
+    False = 0,
+    True = 1
+} Boolean;
+
+/* check the word is a natrual */
+static Boolean check_natrual(const char * word)
+{
+    int i;
+    if (!word) return False;
+    for (i = 0; word[i] != '\0'; i++)
+    {
+        if (word[i] < '0' || word[i] > '9')
+            return False;
+    }
+    return i != 0;
+}
+static Boolean parse_natrual(const char * word, int * n)
+{
+    if (check_natrual(word))
+    {
+        *n = atoi(word);
+        return True;
+    }
+    return False;
+}
+static Boolean parse_natrual_ll(const char * word, long long * ll)
+{
+    if (check_natrual(word))
+    {
+        *ll = atoll(word);
+        return True;
+    }
+    return False;
+}
+static Boolean parse_fraction(const char * word, int * num, int * den)
+{
+    int i, nn = 1, mm = 1;
+    const char * pm = NULL;
+    if (!word)
+    {
+        return False;
+    }
+    for (i = 0; word[i] != '\0'; i++)
+    {
+        if (word[i] < '0' || word[i] > '9')
+        {
+            if (word[i] == '/' && pm == NULL)
+            {
+                if (i > 0)
+                {
+                    nn = atoi(word);
+                    pm = word + i + 1;
+                }
+                else
+                {
+                    return False;
+                }
+            }
+            else
+            {
+                return False;
+            }
+        }
+    }
+    if (i == 1)
+    {
+        return False;
+    }
+    if (pm && pm[0] != '\0')
+    {
+        mm = atoi(pm);
+    }
+    *num = nn;
+    *den = mm;
+    return True;
+}
+
 static int parse_options(int argc, char ** argv, struct context *ctx)
 {
     char c;
@@ -384,10 +475,12 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             else
             if (strcmp(long_options[option_index].name, "maxnum") == 0)
             {
-                int n = atoll(optarg);
-                if (n > 0)
+                if (!parse_natrual_ll(optarg, &ctx->limits.max_numerator))
                 {
-                    ctx->limits.max_numerator = n;
+                    fprintf(stderr,
+                            "Argument Error: Max numerator wants a natrual number, "
+                            "but of '%s'.\n", optarg);
+                    exit(1);
                 }
             }
             else
@@ -398,46 +491,45 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             else
             if (strcmp(long_options[option_index].name, "int-bits") == 0)
             {
-                ctx->int_bits = (unsigned)atoi(optarg);
+                if (!parse_natrual(optarg, &ctx->int_bits))
+                {
+                    fprintf(stderr, "Error parsing argument: --int-bits=%s\n", optarg);
+                    exit(1);
+                }
             }
             else
             if (strcmp(long_options[option_index].name, "root") == 0)
             {
-                int n = 1, m = 1;
-                n = atoll(optarg);
-                if (strchr(optarg, '/'))
+                if (parse_fraction(optarg, &ctx->root_m, &ctx->root_n))
                 {
-                    m = n;
-                    n = atoll(strchr(optarg, '/') + 1);
+                    if (ctx->root_m > ctx->root_n)
+                    {
+                        fprintf(stderr, "Error: root of x^{%s} is not supported\n", optarg);
+                        exit(1);
+                    }
+                    ctx->find_root = 2;
                 }
-                if (m > n)
+                else
                 {
-                    fprintf(stderr, "root of {}^{%d/%d} not supported\n", m, n);
+                    fprintf(stderr, "Error parsing argument: --root=%s\n", optarg);
                     exit(1);
                 }
-                ctx->root_n = n;
-                ctx->root_m = m;
-                ctx->find_root = 2;
             }
             break;
 
         case 'm':
+            if (!parse_natrual_ll(optarg, &ctx->limits.max_denominator))
             {
-                long long n = atoll(optarg);
-                if (n > 0)
-                {
-                    ctx->limits.max_denominator = n;
-                }
+                fprintf(stderr, "Error parsing argument: --maxden=%s\n", optarg);
+                exit(1);
             }
             break;
 
         case 'n':
+            if (!parse_natrual(optarg, &ctx->limits.max_index))
             {
-                long long i = atoi(optarg);
-                if (i > 0)
-                {
-                    ctx->limits.max_index = i;
-                }
+                fprintf(stderr, "Error parsing argument: --number=%s", optarg);
+                exit(1);
             }
             break;
 
@@ -458,8 +550,15 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
             break;
 
         case 'f':
-            ctx->prints_float = atoi(optarg);
-            ctx->show_mod = c;
+            if (parse_natrual(optarg, &ctx->prints_float))
+            {
+                ctx->show_mod = c;
+            }
+            else
+            {
+                fprintf(stderr, "Error parsing argument: --float=%s\n", optarg);
+                exit(1);
+            }
             break;
 
         case 'v':
@@ -493,7 +592,7 @@ static int parse_options(int argc, char ** argv, struct context *ctx)
         /* reverse function directly and exit */
         long long *nums;
         int size = argc - optind, i;
-        nums = (long long *)malloc(sizeof(long long) * (size));
+        nums = (long long *)calloc(size, sizeof(long long));
         if (!nums)
         {
             fprintf(stderr, "no memory\n");
@@ -630,6 +729,7 @@ int main(int argc, char ** argv)
     ctx.root_n = 1;
     ctx.prints_float = -1;
     ctx.show_mod = '\0';
+    ctx.steps = NULL;
 
     /* parse options */
     if (parse_options(argc, argv, &ctx) != 0)
@@ -647,6 +747,8 @@ int main(int argc, char ** argv)
         memcpy(&ctx_simp, &ctx, sizeof(ctx));
         ctx_simp.show_mod = 's';
         ctx_simp.find_root = 0;
+        ctx_simp.x = cf_copy(ctx.x);
+        ctx_simp.steps = NULL;
         if (ctx_simp.is_float)
         {
             if (ctx_simp.den == NULL)
@@ -676,7 +778,7 @@ int main(int argc, char ** argv)
                 cf_free(c2);
             }
         }
-        ctx_simp.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
+        ctx_simp.steps = (struct cfstep*) calloc(1, sizeof(struct cfstep));
         cfr(ctx_simp.x, 0, &ctx_simp.limits, cfrcb_accept_simp, &ctx_simp);
         f = ctx_simp.steps->t.convergent;
         if (f.n < 0)
@@ -685,6 +787,7 @@ int main(int argc, char ** argv)
             f.n = -f.n;
         }
         cf_free(ctx.x);
+        ctx.x = NULL;
         if (ctx.find_root == 1)
             cfx = cf_create_from_sqrt_n(f.n);
         else
@@ -718,6 +821,9 @@ int main(int argc, char ** argv)
         else
             ctx.show_mod = 'c';
         ctx.is_welformed = 0;
+        cf_free(ctx_simp.x);
+        ctx_simp.x = NULL;
+        cfr_ctx_free_steps(&ctx_simp);
     }
 
     switch (ctx.show_mod)
@@ -770,7 +876,7 @@ int main(int argc, char ** argv)
                     cf_free(c2);
                 }
             }
-            ctx.steps = (struct cfstep*) malloc(sizeof(struct cfstep));
+            ctx.steps = (struct cfstep*) calloc(1, sizeof(struct cfstep));
             cfr(ctx.x, 0, &ctx.limits, cfrcb_accept_simp, &ctx);
             f = ctx.steps->t.convergent;
             if (ctx.is_welformed)
@@ -826,6 +932,16 @@ int main(int argc, char ** argv)
         ctx.is_complete = cfr(ctx.x, gcd, &ctx.limits, cfrcb_collect_steps, &ctx);
         print_report(argc, argv, &ctx);
     }
+    if (ctx.num)
+    {
+        free(ctx.num);
+    }
+    if (ctx.den)
+    {
+        free(ctx.den);
+    }
+    cfr_ctx_free_steps(&ctx);
+    cf_free(ctx.x);
     return 0;
 }
 
