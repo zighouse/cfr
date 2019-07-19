@@ -493,6 +493,31 @@ static gcf_class _gcf_nth_class = {
     gcf_nth_copy
 };
 
+/* macro detect_overflow(is_overflow) */
+#if defined(__GNUC__) && defined(i386)
+#define detect_overflow(is_overflow)                         \
+{                                                            \
+    size_t eflags;                                           \
+	__asm__ (                                                \
+		"pushfl;"                                            \
+		"popl %%eax"                                         \
+      : "=a" (eflags));                                      \
+    is_overflow |= (eflags >> 11) & 1;                       \
+}
+#elif defined(__GNUC__) && defined(__x86_64__)
+#define detect_overflow(is_overflow)                         \
+{                                                            \
+    size_t rflags;                                           \
+	__asm__ (                                                \
+		"pushfq;"                                            \
+		"popq %%rax"                                         \
+      : "=a" (rflags));                                      \
+    is_overflow |= (rflags >> 11) & 1;                       \
+}
+#else
+#error detect_overflow() not implemented!
+#endif
+
 /**
  * find a: a^n <= v; (a+1)^n > v;
  */
@@ -503,15 +528,40 @@ static int find_power(unsigned long long v, unsigned long n,
     unsigned long long hi = v;
     unsigned long long md = (1 + v)/2;
     unsigned long long pow_n_md = md;
+    int is_overflow = 0;
     while (1)
     {
         unsigned long m = n;
         while (m > 1)
         {
             pow_n_md *= md;
+            detect_overflow(is_overflow);
+            if (is_overflow || pow_n_md > v)
+            {
+                break;
+            }
             m--;
         }
-        if (v == pow_n_md)
+        if (is_overflow || v < pow_n_md)
+        {
+            hi = md;
+            md = (lo + md)/2;
+            pow_n_md = md;
+            if (hi == lo + 1)
+            {
+                /* found */
+                *a = lo;
+                unsigned long m = n;
+                while (m > 1)
+                {
+                    pow_n_md *= md;
+                    m--;
+                }
+                *b = v - pow_n_md;
+                return 0;
+            }
+        }
+        else if (v == pow_n_md)
         {
             /* found */
             *a = md;
@@ -530,25 +580,6 @@ static int find_power(unsigned long long v, unsigned long n,
                 return 0;
             }
             pow_n_md = md;
-        }
-        else
-        {
-            hi = md;
-            md = (lo + md)/2;
-            pow_n_md = md;
-            if (hi == lo + 1)
-            {
-                /* found */
-                *a = lo;
-                unsigned long m = n;
-                while (m > 1)
-                {
-                    pow_n_md *= md;
-                    m--;
-                }
-                *b = v - pow_n_md;
-                return 0;
-            }
         }
     }
     *a = *b = 0;
