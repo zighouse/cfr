@@ -535,6 +535,7 @@ static int find_power(unsigned long long v, unsigned long n,
         while (m > 1)
         {
             pow_n_md *= md;
+            // TODO not enough bits.
             detect_overflow(is_overflow);
             if (is_overflow || pow_n_md > v)
             {

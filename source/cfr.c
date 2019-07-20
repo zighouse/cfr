@@ -749,7 +749,6 @@ int main(int argc, char ** argv)
             ctx_simp.x = cf_copy(ctx.x);
         ctx_simp.show_mod = 's';
         ctx_simp.find_root = 0;
-        ctx_simp.x = cf_copy(ctx.x);
         ctx_simp.steps = NULL;
         if (ctx_simp.is_float)
         {
