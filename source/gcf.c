@@ -1,3 +1,10 @@
+/*
+ * Definitions of continued fraction and related operations.
+ *
+ * \author xiezhigang
+ * \date   2016-09-07
+ */
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -493,6 +500,25 @@ static gcf_class _gcf_nth_class = {
     gcf_nth_copy
 };
 
+static int get_highest_bit(unsigned long long v)
+{
+    int lb = 0, hb = 64;
+    int mb = (lb + hb) / 2;
+    while (lb != mb)
+    {
+        if (v >> mb)
+        {
+            lb = mb;
+        }
+        else
+        {
+            hb = mb;
+        }
+        mb = (lb + hb) / 2;
+    }
+    return hb;
+}
+
 /* macro detect_overflow(is_overflow) */
 #if defined(__GNUC__) && defined(i386)
 #define detect_overflow(is_overflow)                         \
@@ -520,22 +546,24 @@ static gcf_class _gcf_nth_class = {
 
 /**
  * find a: a^n <= v; (a+1)^n > v;
+ * n log a <= log v, log a <= 1/n log v
+ * so we know bits of a is less than one of nth bits of v.
  */
 static int find_power(unsigned long long v, unsigned long n,
                       unsigned long long *a, unsigned long long *b)
 {
-    unsigned long long lo = 1;
-    unsigned long long hi = v;
-    unsigned long long md = (1 + v)/2;
+    int bit = (get_highest_bit(v) - 1) / n;
+    unsigned long long lo = 1llu << bit;
+    unsigned long long hi = 1llu << (bit + 1);
+    unsigned long long md = (lo + hi)/2;
     unsigned long long pow_n_md = md;
     int is_overflow = 0;
-    while (1)
+    while (md != 1)
     {
         unsigned long m = n;
         while (m > 1)
         {
             pow_n_md *= md;
-            // TODO not enough bits.
             detect_overflow(is_overflow);
             if (is_overflow || pow_n_md > v)
             {
@@ -548,6 +576,7 @@ static int find_power(unsigned long long v, unsigned long n,
             hi = md;
             md = (lo + md)/2;
             pow_n_md = md;
+            is_overflow = 0;
             if (hi == lo + 1)
             {
                 /* found */
@@ -583,7 +612,15 @@ static int find_power(unsigned long long v, unsigned long n,
             pow_n_md = md;
         }
     }
-    *a = *b = 0;
+    if (md == 1)
+    {
+        *a = v > 1 ? 1 : 0;
+        *b = v - *a;
+    }
+    else
+    {
+        *a = *b = 0;
+    }
     return 0;
 }
 
