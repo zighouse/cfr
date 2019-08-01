@@ -500,6 +500,7 @@ static gcf_class _gcf_nth_class = {
     gcf_nth_copy
 };
 
+#if 0
 static int get_highest_bit(unsigned long long v)
 {
     int lb = 0, hb = 64;
@@ -518,6 +519,12 @@ static int get_highest_bit(unsigned long long v)
     }
     return hb;
 }
+#else
+static inline int get_highest_bit(unsigned long long v)
+{
+    return 64 - __builtin_clzll(v);
+}
+#endif
 
 /* macro detect_overflow(is_overflow) */
 #if defined(__GNUC__) && defined(i386)
